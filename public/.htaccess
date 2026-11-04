@@ -1,0 +1,16 @@
+# Shipped in every build as a second guard (doc 15 Part A, Deployment to EGR).
+# After the first deploy, /prototype/.git/HEAD must return 403 or 404 (doc 17 M6).
+RedirectMatch 404 /\.git
+
+# Caching: Vite fingerprints files in assets/, so they can be cached for a long time.
+# index.html and the scenario presets must always be revalidated so a `git pull`
+# on scully is visible immediately. Guarded so a server without mod_headers does
+# not return 500.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|png|svg|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "(\.html|\.json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

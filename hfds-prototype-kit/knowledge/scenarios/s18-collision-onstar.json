@@ -1,0 +1,118 @@
+{
+  "id": "s18-collision-onstar",
+  "name": "Collision / airbag deployment → OnStar call",
+  "description": "A collision with airbag deployment is injected. HFDS places an OnStar emergency call.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": true,
+  "requirements": [
+    "SR8"
+  ],
+  "caption": {
+    "summary": "SR8 emergency call.",
+    "steps": [
+      "15 s: Director injects collision with airbag deployment.",
+      "HFDS disengages; OnStar emergency call placed and logged."
+    ],
+    "watchFor": [
+      "OnStar status."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 30,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 15.0,
+      "kind": "inject",
+      "action": "collision",
+      "args": {
+        "airbag": true
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "hmi",
+      "reqs": [
+        "SR8"
+      ],
+      "by": 16,
+      "field": "onStar",
+      "valueIn": [
+        "connecting",
+        "connected"
+      ]
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "SR8"
+      ],
+      "by": 15.1,
+      "type": "info",
+      "contains": "OnStar"
+    }
+  ]
+}

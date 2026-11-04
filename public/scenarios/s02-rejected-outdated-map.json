@@ -1,0 +1,140 @@
+{
+  "id": "s02-rejected-outdated-map",
+  "name": "Activation rejected: outdated LiDAR map",
+  "description": "The stored LiDAR map is 9 months old. Pressing the HFDS button shows an error and 'Update needed'. After the map update downloads, HFDS can engage.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD5 (4.3.5)",
+  "optional": false,
+  "requirements": ["R11", "R16", "R49", "IR6", "IR16", "UC5"],
+  "caption": {
+    "summary": "Map older than 7 months blocks engagement (IR16); the map update (R11) clears it.",
+    "steps": [
+      "0 s: 'HFDS available' is off; checklist shows map age > 7 months.",
+      "3 s: driver presses the button → error on dashboard, HUD and light bar (R16), activation warning 'Update needed' (R49, IR16).",
+      "10 s: Director applies the map update (R11).",
+      "12 s: driver presses again → HFDS engages."
+    ],
+    "watchFor": [
+      "The rejection lists the failed check, not a generic error.",
+      "Warning and rejection are logged."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 40,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.02",
+    "lastUpdated": "2026-02-01",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 3.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 10.0,
+      "kind": "inject",
+      "action": "applyMapUpdate",
+      "args": {
+        "version": "MI-I96-2026.10",
+        "lastUpdated": "2026-10-20"
+      }
+    },
+    {
+      "t": 12.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    }
+  ],
+  "expect": [
+    {
+      "check": "available",
+      "reqs": ["IR16", "IR6"],
+      "at": 1.0,
+      "value": false
+    },
+    {
+      "check": "hmi",
+      "reqs": ["IR16"],
+      "by": 3.1,
+      "field": "updateNeeded",
+      "value": true
+    },
+    {
+      "check": "hmi",
+      "reqs": ["R16.1"],
+      "by": 3.1,
+      "field": "dashboardError",
+      "nonEmpty": true
+    },
+    {
+      "check": "logged",
+      "reqs": ["R49"],
+      "by": 3.1,
+      "type": "warning",
+      "contains": "Update needed"
+    },
+    {
+      "check": "mode",
+      "reqs": ["IR16"],
+      "at": 4.0,
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "available",
+      "reqs": ["R11"],
+      "by": 10.5,
+      "value": true
+    },
+    {
+      "check": "mode",
+      "reqs": [],
+      "by": 13.5,
+      "value": "HANDS_FREE"
+    }
+  ]
+}

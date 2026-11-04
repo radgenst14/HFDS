@@ -1,0 +1,132 @@
+{
+  "id": "s16-map-mismatch-construction",
+  "name": "Unmapped construction zone (map mismatch)",
+  "description": "A construction zone that is not in the LiDAR map appears ahead. HFDS detects the mismatch and issues a Class A takeover request.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": [
+    "R10",
+    "IR5.2",
+    "IR14",
+    "R28.1",
+    "R37"
+  ],
+  "caption": {
+    "summary": "Map vs. sensed environment mismatch → Class A (R10, IR14).",
+    "steps": [
+      "Construction zone at 5,000–7,000 ft, not in the map.",
+      "Detected within sensor range → error E203 + Class A.",
+      "Driver grips → control transferred."
+    ],
+    "watchFor": [
+      "Cones drawn in the renderer; map overlay shows no construction."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 70,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": [
+      {
+        "fromFt": 5000,
+        "toFt": 7000,
+        "constructionZone": true,
+        "inMap": false
+      }
+    ]
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": null,
+      "kind": "driver",
+      "action": "takeoverOnClassA",
+      "args": {
+        "delayS": 3.0,
+        "grip": [
+          "L",
+          "R"
+        ]
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "logged",
+      "reqs": [
+        "R10",
+        "R37"
+      ],
+      "type": "error",
+      "code": "E203",
+      "whenEgoSFtAtLeast": 4200
+    },
+    {
+      "check": "warningActive",
+      "reqs": [
+        "IR14"
+      ],
+      "cls": "A",
+      "reason": "MAP_MISMATCH",
+      "whenEgoSFtAtLeast": 4200
+    }
+  ]
+}

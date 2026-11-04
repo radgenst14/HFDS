@@ -1,0 +1,138 @@
+{
+  "id": "s14-driver-steers-resume",
+  "name": "Driver steers briefly, HFDS resumes",
+  "description": "The driver nudges the wheel while engaged. The light bar pulses blue and HFDS pauses steering; after 3 s of steady speed and a firm grip, HFDS resumes.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": ["R39", "R39.1", "R39.2", "R34.2", "R35", "IR25"],
+  "caption": {
+    "summary": "Steering pauses HFDS instead of disengaging it (R39).",
+    "steps": [
+      "10 s: driver grips and steers for 1.5 s → pulsing blue (R39.1).",
+      "11.5 s: steering input stops, hands stay on the wheel.",
+      "≈ 14.5 s: 3 s within ±1 mph and firm grip → resume, solid green (R39.2)."
+    ],
+    "watchFor": ["Resume countdown shown under the light bar."]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 30,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "driver",
+      "action": "setSteer",
+      "args": {
+        "value": 0.15
+      }
+    },
+    {
+      "t": 11.5,
+      "kind": "driver",
+      "action": "setSteer",
+      "args": {
+        "value": 0.0
+      }
+    },
+    {
+      "t": 20.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "lightBar",
+      "reqs": ["R39.1", "R34.2"],
+      "by": 10.1,
+      "value": "PulsingBlue"
+    },
+    {
+      "check": "mode",
+      "reqs": ["R39.2"],
+      "at": 13.0,
+      "value": "DRIVER_STEERING"
+    },
+    {
+      "check": "mode",
+      "reqs": ["R39.2"],
+      "by": 14.7,
+      "value": "HANDS_FREE"
+    }
+  ]
+}

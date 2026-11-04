@@ -1,0 +1,250 @@
+{
+  "id": "s09-inattention-ignored",
+  "name": "Driver ignores every attention warning → controlled stop on the shoulder",
+  "description": "The driver looks away and never looks back. Alerts escalate (first, second, final), the driver is marked inactive, and HFDS moves one lane at a time to the right shoulder, stops, turns on hazards, calls OnStar and unlocks the doors. HFDS stays unavailable until the next ignition cycle.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD6 (4.3.6)",
+  "optional": false,
+  "requirements": [
+    "R27",
+    "R28.2",
+    "R29",
+    "R30",
+    "R31",
+    "R34.1",
+    "R34.3",
+    "R36",
+    "R45.3",
+    "R46.2",
+    "IR11",
+    "IR12",
+    "SR1",
+    "SR1.1",
+    "SR1.1.2",
+    "SR1.2",
+    "SR1.3",
+    "SR1.4",
+    "SR6",
+    "IR10",
+    "UC16",
+    "UC21"
+  ],
+  "caption": {
+    "summary": "Full Class B escalation and minimal risk maneuver.",
+    "steps": [
+      "10 s: eyes off road.",
+      "13 s: first alert — flashing green, 'Pay attention to the road.' (R29).",
+      "43 s: second alert — flashing red, seat vibration, 'Take steering control immediately.' (R30).",
+      "48 s: final alert — continuous vibration, voice prompt, phantom brake (R31).",
+      "50 s: driver inactive (R36) → minimal risk maneuver (SR1, SR6).",
+      "Lane 2 → lane 1 (≥ 2 s) → shoulder → stop; hazards, OnStar, doors unlocked.",
+      "Stopped: unavailable until ignition cycle (IR10)."
+    ],
+    "watchFor": [
+      "Alert timer in the HMI.",
+      "Car changes one lane at a time (SR1.1.2).",
+      "OnStar status and door-lock indicator."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 110,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 3,
+      "sFt": -300,
+      "speedMph": 66
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "driver",
+      "action": "setGaze",
+      "args": {
+        "eyesOnRoad": false
+      }
+    },
+    {
+      "t": 100.0,
+      "kind": "inject",
+      "action": "ignitionCycle"
+    }
+  ],
+  "expect": [
+    {
+      "check": "mode",
+      "reqs": [
+        "R29"
+      ],
+      "at": 13.1,
+      "value": "ALERT_FIRST"
+    },
+    {
+      "check": "lightBar",
+      "reqs": [
+        "R29.1"
+      ],
+      "at": 13.1,
+      "value": "FlashingGreen"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R29.3",
+        "R30"
+      ],
+      "at": 43.1,
+      "value": "ALERT_SECOND"
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "R30.3"
+      ],
+      "at": 43.1,
+      "field": "displayedMessage",
+      "value": "Take steering control immediately."
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R30.4",
+        "R31"
+      ],
+      "at": 48.1,
+      "value": "ALERT_FINAL"
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R31.3"
+      ],
+      "by": 48.1,
+      "type": "info",
+      "contains": "phantom brake"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R36",
+        "SR6",
+        "IR11"
+      ],
+      "at": 50.1,
+      "value": "MINIMAL_RISK_MANEUVER"
+    },
+    {
+      "check": "laneDwellAtLeast",
+      "reqs": [
+        "SR1.1.2"
+      ],
+      "seconds": 2.0
+    },
+    {
+      "check": "onShoulderStopped",
+      "reqs": [
+        "SR1.1"
+      ],
+      "by": 99
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "SR1.2"
+      ],
+      "by": 50.2,
+      "field": "hazardLights",
+      "value": true
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "SR1.3"
+      ],
+      "by": 99,
+      "field": "onStar",
+      "value": "connected"
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "SR1.4"
+      ],
+      "by": 99,
+      "field": "doorsUnlocked",
+      "value": true
+    },
+    {
+      "check": "available",
+      "reqs": [
+        "IR10"
+      ],
+      "to": 99.9,
+      "value": false,
+      "from": 95
+    }
+  ]
+}

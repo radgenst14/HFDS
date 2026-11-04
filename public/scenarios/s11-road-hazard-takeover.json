@@ -1,0 +1,139 @@
+{
+  "id": "s11-road-hazard-takeover",
+  "name": "Road hazard: driver takes over",
+  "description": "Debris lies in the ego lane. HFDS does not steer around it; it issues a Class A warning, keeps the lane and coasts. The driver steers into lane 3 to pass it. After 20 s HFDS re-runs its checks and shows 'HFDS available'.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD7 (4.3.7)",
+  "optional": false,
+  "requirements": ["UC10", "IR26", "R28.1", "IR12", "IR13", "R35", "R40", "R38.4", "R45.5"],
+  "caption": {
+    "summary": "HFDS hands hazards to the driver instead of avoiding them (IR26).",
+    "steps": [
+      "Debris at 3,000 ft in lane 2.",
+      "Detected inside the selection distance → Class A, flashing red, coasting (IR12, IR13).",
+      "3 s later the driver grips and steers to lane 3 → control transferred and logged (R40).",
+      "+20 s: checks re-run; 'HFDS available' (R38.4)."
+    ],
+    "watchFor": [
+      "HFDS never changes lanes itself.",
+      "Speed only decreases while the light bar is red."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 70,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [
+    {
+      "id": 1,
+      "type": "Debris",
+      "laneId": 2,
+      "sFt": 3000
+    }
+  ],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": null,
+      "kind": "driver",
+      "action": "takeoverOnClassA",
+      "args": {
+        "delayS": 3.0,
+        "grip": ["L", "R"],
+        "steerToLaneId": 3
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "warningActive",
+      "reqs": ["IR26"],
+      "cls": "A",
+      "reason": "HAZARD_IN_LANE",
+      "whenHazardWithinFt": 800
+    },
+    {
+      "check": "noAccelWhileRed",
+      "reqs": ["IR12", "IR13"]
+    },
+    {
+      "check": "laneUnchangedUntilTakeover",
+      "reqs": ["IR26"]
+    },
+    {
+      "check": "logged",
+      "reqs": ["R45.5"],
+      "type": "takeover_request"
+    },
+    {
+      "check": "mode",
+      "reqs": ["UC18"],
+      "after": "classA+3.1",
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "available",
+      "reqs": ["R38.4"],
+      "after": "takeover+20.5",
+      "value": true
+    }
+  ]
+}

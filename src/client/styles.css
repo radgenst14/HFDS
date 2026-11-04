@@ -1,0 +1,177 @@
+/* Doc 15 B6: desktop-first (>= 1280 px), usable at 1024 px. */
+:root {
+  --bg: #0f1419;
+  --panel: #182028;
+  --panel-border: #2a3640;
+  --text: #e6edf3;
+  --muted: #8b98a5;
+  --accent: #3b82f6;
+  --driver: #1f6f43;
+  --director: #7a4b12;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 1024px;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
+  grid-template-rows: auto minmax(420px, 1fr) auto;
+  grid-template-areas:
+    'top top top'
+    'left center right'
+    'bottom bottom bottom';
+  gap: 8px;
+  min-height: 100vh;
+  padding: 8px;
+}
+
+.region,
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.top-bar {
+  grid-area: top;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.title {
+  font-size: 16px;
+  margin: 0;
+}
+
+.picker,
+.session-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.disclaimer {
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow: auto;
+}
+
+.left-column {
+  grid-area: left;
+}
+
+.right-column {
+  grid-area: right;
+}
+
+.center-column {
+  grid-area: center;
+  display: grid;
+  grid-template-rows: minmax(300px, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.road-view {
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.cluster {
+  min-height: 140px;
+  padding: 8px;
+}
+
+.bottom-drawer {
+  grid-area: bottom;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  max-height: 280px;
+}
+
+.panel {
+  padding: 8px;
+  overflow: auto;
+}
+
+.panel h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.panel-body {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.driver-panel {
+  border-left: 4px solid var(--driver);
+}
+
+.director-panel {
+  border-left: 4px solid var(--director);
+}
+
+button,
+select {
+  font: inherit;
+  color: var(--text);
+  background: #22303c;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+button:disabled,
+select:disabled {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1.5s !important;
+    transition: none !important;
+  }
+}

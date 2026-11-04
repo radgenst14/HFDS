@@ -1,0 +1,157 @@
+{
+  "id": "s13-driver-brakes",
+  "name": "Driver brakes to regain control",
+  "description": "Customer Scenario 4. While HFDS is engaged, the driver presses the brake. ACC is cancelled, the display updates and the disengagement is logged.",
+  "customerScenario": 4,
+  "sequenceDiagram": "SD8 (4.3.8)",
+  "optional": false,
+  "requirements": [
+    "R50",
+    "R50.1",
+    "R50.2",
+    "R50.3",
+    "IR15",
+    "IR25",
+    "R40"
+  ],
+  "caption": {
+    "summary": "Driver braking always disengages HFDS and ACC (IR15).",
+    "steps": [
+      "2 s: engage.",
+      "12 s: driver presses the brake → disengaged in the same tick.",
+      "Display shows the driver is in control (R40, R50.2); log entry (R50.3)."
+    ],
+    "watchFor": [
+      "No HFDS command is applied after the brake press."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 30,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 400,
+      "speedMph": 64
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 12.0,
+      "kind": "driver",
+      "action": "setBrake",
+      "args": {
+        "pressed": true,
+        "rate": 5.0
+      }
+    },
+    {
+      "t": 13.5,
+      "kind": "driver",
+      "action": "setBrake",
+      "args": {
+        "pressed": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "mode",
+      "reqs": [
+        "IR15",
+        "R50"
+      ],
+      "by": 12.06,
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "accActive",
+      "reqs": [
+        "R50.1"
+      ],
+      "by": 12.06,
+      "value": false
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R50.3",
+        "R45.2"
+      ],
+      "by": 12.06,
+      "type": "disengagement"
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "R40",
+        "R50.2"
+      ],
+      "by": 12.06,
+      "field": "controlTransferBanner",
+      "nonEmpty": true
+    }
+  ]
+}

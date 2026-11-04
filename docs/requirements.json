@@ -1,0 +1,1952 @@
+[
+  {
+    "id": "R1",
+    "section": "3.1.1 Vehicle control and position",
+    "text": "The Vehicle Control System shall steer, accelerate, and brake the vehicle according to commands from the Driver Assist System.",
+    "srs_id": "R1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "VehicleControl applies ControlCommands (steer/accelerate/brake) to the ego kinematic model.",
+      "scenarios": "S04,S05"
+    }
+  },
+  {
+    "id": "R2",
+    "section": "3.1.1 Vehicle control and position",
+    "text": "The Path Prediction Subsystem shall calculate the projected path (the blue path) from Vehicle Position Subsystem data and the precision Light Detection and Ranging (LiDAR) map.",
+    "srs_id": "R2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "PathPrediction.calculateBluePath() returns lane-centerline points (+targetOffset) from the scenario road map; drawn as the blue path.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R3",
+    "section": "3.1.1 Vehicle control and position",
+    "text": "The Vehicle Position Subsystem shall validate the vehicle position by comparing camera, radar, and Global Positioning System (GPS) data against the LiDAR map.",
+    "srs_id": "R3",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "VehiclePosition.validatePosition() compares simulated camera / radar / GPS position estimates against the map; a scenario can inject disagreement.",
+      "scenarios": "S07,S08"
+    }
+  },
+  {
+    "id": "R12",
+    "section": "3.1.2 Engagement",
+    "text": "The Human Machine Interface (HMI) shall let the driver turn hands-free mode on and off.",
+    "srs_id": "R12",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "HFDS button (driver panel / key H) toggles request on/off.",
+      "scenarios": "S01,S13"
+    }
+  },
+  {
+    "id": "R13",
+    "section": "3.1.2 Engagement",
+    "text": "The Driver Assist System shall gather weather and road condition data.",
+    "srs_id": "R13",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Environment (weather, light, moisture, visibility) read from scenario and Director overrides; isWithinODD().",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "R14",
+    "section": "3.1.2 Engagement",
+    "text": "Before engagement, the HFDS shall confirm that the cameras, radars, GPS, map data, and lane-management functions pass their self-tests.",
+    "srs_id": "R14",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Start sequence runs selfTest() on cameras, radars, GPS, map data, lane-management functions.",
+      "scenarios": "S01,S03"
+    }
+  },
+  {
+    "id": "R15",
+    "section": "3.1.2 Engagement",
+    "text": "Before engagement, the Driver Assist System shall validate as safe:",
+    "srs_id": "R15",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "validateEngagement() checks road conditions, trajectory, sensor input, blue path. Each check result shown in the activation checklist panel.",
+      "scenarios": "S01,S02,S03"
+    }
+  },
+  {
+    "id": "R15.1",
+    "section": "3.1.2 Engagement",
+    "text": "the road conditions,",
+    "srs_id": "R15.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R15.",
+      "scenarios": "S01,S02,S03"
+    }
+  },
+  {
+    "id": "R15.2",
+    "section": "3.1.2 Engagement",
+    "text": "the current trajectory,",
+    "srs_id": "R15.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R15.",
+      "scenarios": "S01,S02,S03"
+    }
+  },
+  {
+    "id": "R15.3",
+    "section": "3.1.2 Engagement",
+    "text": "the sensor input, and",
+    "srs_id": "R15.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R15.",
+      "scenarios": "S01,S02,S03"
+    }
+  },
+  {
+    "id": "R15.4",
+    "section": "3.1.2 Engagement",
+    "text": "the blue path.",
+    "srs_id": "R15.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R15.",
+      "scenarios": "S01,S02,S03"
+    }
+  },
+  {
+    "id": "R16",
+    "section": "3.1.2 Engagement",
+    "text": "When the driver presses the HFDS button while the HFDS is unavailable, the HFDS shall display an error:",
+    "srs_id": "R16",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Button press while unavailable -> error on dashboard; also HUD and light bar only if vehicleConfig.hasHUD / hasLightBar.",
+      "scenarios": "S02,S03"
+    }
+  },
+  {
+    "id": "R16.1",
+    "section": "3.1.2 Engagement",
+    "text": "on the dashboard,",
+    "srs_id": "R16.1",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R16.",
+      "scenarios": "S02,S03"
+    }
+  },
+  {
+    "id": "R16.2",
+    "section": "3.1.2 Engagement",
+    "text": "on the front window screen, if the vehicle has one, and",
+    "srs_id": "R16.2",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R16.",
+      "scenarios": "S02,S03"
+    }
+  },
+  {
+    "id": "R16.3",
+    "section": "3.1.2 Engagement",
+    "text": "on the steering wheel light bar, if the vehicle has one.",
+    "srs_id": "R16.3",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R16.",
+      "scenarios": "S02,S03"
+    }
+  },
+  {
+    "id": "R17",
+    "section": "3.1.2 Engagement",
+    "text": "After engaging, the HFDS shall enter the Adaptive Cruise Control (ACC) state and use the current vehicle speed as the set speed if no speed was previously set.",
+    "srs_id": "R17",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "On engage: ACC state; setSpeed = current speed if no prior set speed.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R47",
+    "section": "3.1.2 Engagement",
+    "text": "Before engagement, the Driver Assist System shall check the sensor status, the vehicle position, and the validity of the LiDAR map.",
+    "srs_id": "R47",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Pre-engagement check of sensor status, vehicle position, LiDAR map validity.",
+      "scenarios": "S01,S02"
+    }
+  },
+  {
+    "id": "R48",
+    "section": "3.1.2 Engagement",
+    "text": "The Vehicle Control System shall:",
+    "srs_id": "R48",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "VehicleControl reports activation conditions met and confirms engagement (sequence SD1).",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R48.1",
+    "section": "3.1.2 Engagement",
+    "text": "report to the Driver Assist System whether the vehicle activation conditions are met, and",
+    "srs_id": "R48.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R48.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R48.2",
+    "section": "3.1.2 Engagement",
+    "text": "confirm each engagement to the Driver Assist System.",
+    "srs_id": "R48.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R48.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R49",
+    "section": "3.1.2 Engagement",
+    "text": "When engagement is rejected, the HMI shall display an activation warning and the HFDS shall notify the driver that the activation was rejected.",
+    "srs_id": "R49",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Rejected engagement -> activation warning on HMI + driver notified (message lists failed checks).",
+      "scenarios": "S02,S03"
+    }
+  },
+  {
+    "id": "R42",
+    "section": "3.1.2 Engagement",
+    "text": "The HFDS shall finish its start sequence before processing a stop request.",
+    "srs_id": "R42",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Stop request during start sequence is queued until the sequence finishes.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R43",
+    "section": "3.1.2 Engagement",
+    "text": "The HFDS shall ignore any HFDS button press that occurs within 0.5 seconds of the previous press.",
+    "srs_id": "R43",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "HFDS button presses within 0.5 s of the previous press are ignored.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R18",
+    "section": "3.1.3 Lane keeping",
+    "text": "While engaged, the HFDS shall keep the vehicle within its existing lane.",
+    "srs_id": "R18",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Ego never leaves lane while engaged (test: |lateralOffset| + egoWidth/2 <= laneWidth/2).",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R19",
+    "section": "3.1.3 Lane keeping",
+    "text": "While engaged, the Driver Assist System shall continuously analyze, using the pre-loaded LiDAR map:",
+    "srs_id": "R19",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "analyzeSurroundings() every tick while engaged.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R19.1",
+    "section": "3.1.3 Lane keeping",
+    "text": "the vehicle position,",
+    "srs_id": "R19.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R19.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R19.2",
+    "section": "3.1.3 Lane keeping",
+    "text": "the current trajectory,",
+    "srs_id": "R19.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R19.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R19.3",
+    "section": "3.1.3 Lane keeping",
+    "text": "the surrounding vehicles, and",
+    "srs_id": "R19.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R19.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R19.4",
+    "section": "3.1.3 Lane keeping",
+    "text": "the sensor health.",
+    "srs_id": "R19.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R19.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R20",
+    "section": "3.1.3 Lane keeping",
+    "text": "The Driver Assist System shall keep the vehicle centered in its lane along the blue path, using the detected lane markings and the surrounding vehicles as additional inputs.",
+    "srs_id": "R20",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "keepLaneCentered() steers toward blue path; lateral offset converges to targetOffset.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R39",
+    "section": "3.1.3 Lane keeping",
+    "text": "When the driver steers manually while the HFDS is engaged and no takeover has been requested:",
+    "srs_id": "R39",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver steering while engaged (no takeover request) -> pulsing blue, HFDS pauses lateral control; resumes after 3 s within 1.0 mph band and firm grip.",
+      "scenarios": "S14"
+    }
+  },
+  {
+    "id": "R39.1",
+    "section": "3.1.3 Lane keeping",
+    "text": "the HMI shall show the pulsing blue light bar, and",
+    "srs_id": "R39.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R39.",
+      "scenarios": "S14"
+    }
+  },
+  {
+    "id": "R39.2",
+    "section": "3.1.3 Lane keeping",
+    "text": "the HFDS shall resume steering once the vehicle speed has stayed within a band of 1.0 mph for 3 consecutive seconds and the driver has held the steering wheel with a firm grip (R35) for the same 3 seconds.",
+    "srs_id": "R39.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R39.",
+      "scenarios": "S14"
+    }
+  },
+  {
+    "id": "R6",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall classify each surrounding vehicle by size as a car, SUV, truck, semi-truck, or bus.",
+    "srs_id": "R6",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Each traffic vehicle has a sizeClass; classifyVehicle() derives it from length. SUV missing from the domain enum; see ISSUE-06.",
+      "scenarios": "S04,S05"
+    }
+  },
+  {
+    "id": "R7",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall estimate the relative speed and the relative acceleration of each surrounding vehicle.",
+    "srs_id": "R7",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Relative speed and acceleration computed per tick from simulated tracks.",
+      "scenarios": "S05,S06"
+    }
+  },
+  {
+    "id": "R8",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall estimate the position, length, and width of the near surroundings. The near surroundings are the vehicles, the road shoulder, the median barrier, and the lane boundaries within the selection distance (R4) ahead of the vehicle and within the adjacent lane on each side.",
+    "srs_id": "R8",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Near-surroundings list (vehicles, shoulder, median barrier, lane boundaries) within selection distance and adjacent lanes.",
+      "scenarios": "S04"
+    }
+  },
+  {
+    "id": "R4",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall select as the lead vehicle the nearest vehicle ahead that is in the lane of the vehicle and within the selection distance.",
+    "srs_id": "R4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "selectLeadVehicle(): nearest in-lane vehicle within selection distance (R4.1-R4.3). Lead is highlighted in the renderer.",
+      "scenarios": "S05,S06"
+    }
+  },
+  {
+    "id": "R4.1",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The selection distance shall be the trail distance plus the braking distance, in feet.",
+    "srs_id": "R4.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R4.",
+      "scenarios": "S05,S06"
+    }
+  },
+  {
+    "id": "R4.1.1",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The selection distance is how far ahead the HFDS looks for a lead vehicle. The trail distance is the distance the HFDS keeps behind the lead vehicle. The braking distance is the distance needed to brake from the current speed to a stop. It equals the speed squared, divided by twice. MaxBrakingDecel(in feet) is the largest braking deceleration the HFDS may command.",
+    "srs_id": "R4.1.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Braking distance = v^2 / (2 * maxBrakingDecel). Text in SRS is garbled; see ISSUE-03.",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R4.2",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The selection distance shall not exceed the detection range of the forward sensors.",
+    "srs_id": "R4.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Clamp to vehicleConfig.forwardSensorRangeFt (value not given in SRS; see ASSUMPTION A-04).",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R4.3",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "A vehicle shall be treated as in the lane of the vehicle when any part of its width overlaps the path of the vehicle along the blue path. The width of the vehicle and of the other vehicle decide this overlap, and the length of the other vehicle decides its size class in R6. The weight of the vehicle enters through a_b.",
+    "srs_id": "R4.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Lateral overlap test between ego path corridor (ego width along blue path) and the other vehicle width. \"a_b\" in the note is undefined; see ISSUE-04.",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R5",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "In the closing zone, the Driver Assist System shall hold the current speed until the gap reaches the coast zone.",
+    "srs_id": "R5",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Closing zone: hold current speed. Zone boundaries are not defined in the SRS; see ISSUE-05 / A-05.",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R21",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "In the coast zone, the Driver Assist System shall coast to match the lead vehicle speed before the safety zone is reached.",
+    "srs_id": "R21",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Coast zone: zero throttle, natural decel, until speed matches lead; then follow at trail distance.",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R22",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "When the closing speed is too high for the distance but within the braking capability of the system, the Driver Assist System shall brake at the required deceleration a_req.",
+    "srs_id": "R22",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "a_req = closingSpeed^2 / (2 * (gap - safetyCushion)); brake at a_req if <= maxBrakingDecel. Worked example from SRS is a unit test.",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R22.1",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The required deceleration is the constant braking rate that brings the closing speed to zero before the gap shrinks to the safety zone. The closing speed is how much faster the vehicle travels than the lead vehicle, in feet per second; it is 0 if the lead vehicle is as fast or faster, so no braking is needed. The available braking distance is the gap (the distance from the front of the vehicle to the rear of the lead vehicle) minus the safety zone.",
+    "srs_id": "R22.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R22.",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R22.2",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall brake at the required deceleration when it is not greater than maxBrakingDecel.",
+    "srs_id": "R22.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R22.",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R22.3",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "When the gap is not greater than the safety cushion, the Driver Assist System shall treat a_req as greater than maxBrakingDecel. Example: at 60 mph behind a car, d_trail is 176 ft and the safety cushion is 44 ft. With a gap of 100 ft and a closing speed of 20 mph (29.3 ft/s), a_req is about 7.7 ft/, which is below 11.5 ft/s\u00b2, so the HFDS brakes. With a closing speed of 30 mph (44 ft/s), a_req is about 17.3 ft/s\u00b2, which is above 11.5 ft/, so the HFDS issues the reclaim-control warning of R23. Note: the statement in R22.1 assumes that the lead vehicle holds its speed or that there is no lead vehicle. If the lead vehicle brakes, the deceleration actually needed is higher than a_req, and the Forward Collision System (IR22) and the reclaim-control warning (R23) cover that case.",
+    "srs_id": "R22.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R22.",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R23",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "When the required deceleration a_req exceeds maxBrakingDecel, the Driver Assist System shall issue a reclaim-control warning to the driver.",
+    "srs_id": "R23",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "a_req > maxBrakingDecel -> Class A reclaim-control warning (UC19).",
+      "scenarios": "S06"
+    }
+  },
+  {
+    "id": "R24",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "If the lead vehicle leaves the lane, the Driver Assist System shall resume the set speed.",
+    "srs_id": "R24",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Lead leaves lane -> resumeSetSpeed() (never above 85 mph, IR27).",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R25",
+    "section": "3.1.4 Surroundings and lead-vehicle following",
+    "text": "The Driver Assist System shall compute the trail distance as the speed of the vehicle, multiplied by the time gap, multiplied by the size factor(1.00/car and SUV, 1.25/truck,1.50/bus,2.00/semi-truck) of the lead vehicle, in feet. The speed is the speed of the vehicle in feet per second. The time gap is the larger of the driver-selected following gap and the 2.0 second minimum of IR9.",
+    "srs_id": "R25",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "d_trail = v(ft/s) * max(driverGap, 2.0 s) * sizeFactor(lead).",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "R27",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "The Driver Attention System (DATS) shall continuously monitor the driver's eye movement and head position while the HFDS is engaged.",
+    "srs_id": "R27",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "DATS samples driver gaze/head state each tick (driver panel toggles \"eyes on road\").",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R28",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "The HFDS shall assign every warning to exactly one of two classes:",
+    "srs_id": "R28",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Every Warning has warningClass A or B.",
+      "scenarios": "S06,S09,S11"
+    }
+  },
+  {
+    "id": "R28.1",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "Class A: reclaim control because of the operational design domain (ODD) or a possible threat (lane visibility loss, sensor fault, road hazard).",
+    "srs_id": "R28.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R28.",
+      "scenarios": "S06,S09,S11"
+    }
+  },
+  {
+    "id": "R28.2",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "Class B: reclaim control because of driver disengagement.",
+    "srs_id": "R28.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R28.",
+      "scenarios": "S06,S09,S11"
+    }
+  },
+  {
+    "id": "R29",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "First alert: when the DATS detects attention loss,",
+    "srs_id": "R29",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "First alert: flashing green, \"Pay attention to the road.\"; second alert after 30 s more of attention loss.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R29.1",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the light bar shall flash green,",
+    "srs_id": "R29.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R29.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R29.2",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the display shall show \"Pay attention to the road.\", and",
+    "srs_id": "R29.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R29.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R29.3",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the DATS shall start the second alert if attention loss continues 30 seconds after the first alert started.",
+    "srs_id": "R29.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R29.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R30",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "Second alert:",
+    "srs_id": "R30",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Second alert: flashing red, chime or seat vibration, \"Take steering control immediately.\"; final after 5 s.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R30.1",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the light bar shall flash red,",
+    "srs_id": "R30.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R30.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R30.2",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the HFDS shall sound an audible alert or vibrate the driver seat,",
+    "srs_id": "R30.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R30.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R30.3",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the display shall show \"Take steering control immediately.\", and",
+    "srs_id": "R30.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R30.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R30.4",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the DATS shall start the final alert if attention loss continues 5 seconds after the second alert started.",
+    "srs_id": "R30.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R30.",
+      "scenarios": "S09,S10"
+    }
+  },
+  {
+    "id": "R31",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "Final alert:",
+    "srs_id": "R31",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Final alert: continuous seat vibration, voice prompt, phantom brake.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "R31.1",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the driver seat shall vibrate continuously,",
+    "srs_id": "R31.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R31.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "R31.2",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "a voice prompt shall instruct the driver to take control, and",
+    "srs_id": "R31.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R31.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "R31.3",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "the HFDS shall apply a phantom brake.",
+    "srs_id": "R31.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R31.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "R32",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "The HFDS shall cancel the active alert if the driver engagement resumes.",
+    "srs_id": "R32",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Eyes back on road -> active alert cancelled, light bar back to solid green.",
+      "scenarios": "S10"
+    }
+  },
+  {
+    "id": "R35",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "The HFDS shall confirm a driver takeover by detecting a firm grip on at least two steering wheel sensing areas.",
+    "srs_id": "R35",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Takeover confirmed when >= 2 grip areas report firm grip (driver panel has grip-area toggles).",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R36",
+    "section": "3.1.5 Driver attention and warnings",
+    "text": "The DATS shall mark the driver as inactive if the driver has not re-engaged within 2 seconds after the final alert started.",
+    "srs_id": "R36",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver marked inactive 2 s after final alert starts without re-engagement.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "R33",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "The HMI shall show a solid green light bar when the HFDS is steering the vehicle.",
+    "srs_id": "R33",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Solid green light bar while HFDS steers; \"hands-free OK\" indicator only while solid green.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R33.1",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "The HFDS shall allow the driver to remove their hands from the steering wheel only while the light bar is solid green.",
+    "srs_id": "R33.1",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R33.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "R34",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "The HMI shall display the following light bar states:",
+    "srs_id": "R34",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Light bar states: flashing green / pulsing blue / flashing red.",
+      "scenarios": "S09,S14"
+    }
+  },
+  {
+    "id": "R34.1",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "flashing green: the HFDS is active and the driver engagement is questionable,",
+    "srs_id": "R34.1",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R34.",
+      "scenarios": "S09,S14"
+    }
+  },
+  {
+    "id": "R34.2",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "pulsing blue: the HFDS is active and the driver is steering manually, and",
+    "srs_id": "R34.2",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R34.",
+      "scenarios": "S09,S14"
+    }
+  },
+  {
+    "id": "R34.3",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "flashing red: the driver needs to take steering control immediately.",
+    "srs_id": "R34.3",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R34.",
+      "scenarios": "S09,S14"
+    }
+  },
+  {
+    "id": "R40",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "The HMI shall announce every transfer of control with a visual indication.",
+    "srs_id": "R40",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Every control transfer shows a visual banner (\"You are in control\" / \"HFDS steering\").",
+      "scenarios": "S08,S11,S13"
+    }
+  },
+  {
+    "id": "R46",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "The HMI shall display:",
+    "srs_id": "R46",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "Cluster shows current HFDS state and active warnings.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R46.1",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "the current system state, and",
+    "srs_id": "R46.1",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R46.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R46.2",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "any active warnings.",
+    "srs_id": "R46.2",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "See parent R46.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R50",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "When the driver brakes, the HFDS shall:",
+    "srs_id": "R50",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver brake -> cancel ACC, update display, log disengagement.",
+      "scenarios": "S13"
+    }
+  },
+  {
+    "id": "R50.1",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "cancel the adaptive cruise control,",
+    "srs_id": "R50.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R50.",
+      "scenarios": "S13"
+    }
+  },
+  {
+    "id": "R50.2",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "update the display, and",
+    "srs_id": "R50.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R50.",
+      "scenarios": "S13"
+    }
+  },
+  {
+    "id": "R50.3",
+    "section": "3.1.6 Human Machine Interface",
+    "text": "log the disengagement.",
+    "srs_id": "R50.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R50.",
+      "scenarios": "S13"
+    }
+  },
+  {
+    "id": "R9",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "The HFDS shall detect faults in:",
+    "srs_id": "R9",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Faults injected by scenario timeline or Director panel are detected by self-test each tick and raised as ErrorCodes.",
+      "scenarios": "S07,S08,S16"
+    }
+  },
+  {
+    "id": "R9.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the radar, camera, and other sensors,",
+    "srs_id": "R9.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R9.",
+      "scenarios": "S07,S08,S16"
+    }
+  },
+  {
+    "id": "R9.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the GPS receiver,",
+    "srs_id": "R9.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R9.",
+      "scenarios": "S07,S08,S16"
+    }
+  },
+  {
+    "id": "R9.3",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the map data, and",
+    "srs_id": "R9.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R9.",
+      "scenarios": "S07,S08,S16"
+    }
+  },
+  {
+    "id": "R9.4",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the Path Prediction Subsystem.",
+    "srs_id": "R9.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R9.",
+      "scenarios": "S07,S08,S16"
+    }
+  },
+  {
+    "id": "R10",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "The HFDS shall detect a mismatch between the LiDAR map and the sensed environment, such as a construction zone missing from the map.",
+    "srs_id": "R10",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "LiDARMap.detectMismatch(): sensed construction zone / lane geometry not in map -> fault + Class A (IR14).",
+      "scenarios": "S16"
+    }
+  },
+  {
+    "id": "R11",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "The HFDS shall download LiDAR map updates and GPS correction data automatically.",
+    "srs_id": "R11",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Map-update and GPS-correction \"downloads\" are simulated status timestamps; Director can make GPS correction stale (> 5 s, IR5.8) or apply a map update.",
+      "scenarios": "S02"
+    }
+  },
+  {
+    "id": "R37",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "The HFDS shall record each fault as an error code with:",
+    "srs_id": "R37",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "ErrorCode {code, description, severity 0-100, band low/middle/high, sensor metadata}.",
+      "scenarios": "S07,S08"
+    }
+  },
+  {
+    "id": "R37.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "a description, and",
+    "srs_id": "R37.1",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R37.",
+      "scenarios": "S07,S08"
+    }
+  },
+  {
+    "id": "R37.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "a severity score(0 to 100, 0-24 = low, 25-74 = middle, and 75-100 = high)",
+    "srs_id": "R37.2",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R37.",
+      "scenarios": "S07,S08"
+    }
+  },
+  {
+    "id": "R38",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "After a fault, the HFDS shall allow re-engagement according to the severity of the error code:",
+    "srs_id": "R38",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Re-engagement gating by severity band; 20 s post-takeover recheck then \"HFDS available\".",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R38.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "low score: once all operating constraints in Section 3.3 are met again,",
+    "srs_id": "R38.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R38.",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R38.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "middle score: only after the fault has cleared, the 30 second reactivation buffer of R41.2 has passed, and the engagement checks pass,",
+    "srs_id": "R38.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R38.",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R38.3",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "high score: as stated in IR23, and",
+    "srs_id": "R38.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R38.",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R38.4",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "after a driver takeover: the HFDS shall re-run its engagement checks 20 seconds after the takeover and display \"HFDS available\" when the checks pass.",
+    "srs_id": "R38.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R38.",
+      "scenarios": "S08,S11"
+    }
+  },
+  {
+    "id": "R41",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "After 3 system-initiated reclaim requests within 5 minutes, the HFDS shall:",
+    "srs_id": "R41",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "3 system-initiated reclaim requests within 5 min -> deactivate + 30 s reactivation buffer.",
+      "scenarios": "S15"
+    }
+  },
+  {
+    "id": "R41.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "deactivate itself, and",
+    "srs_id": "R41.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R41.",
+      "scenarios": "S15"
+    }
+  },
+  {
+    "id": "R41.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "apply a reactivation buffer of 30 seconds until the surroundings are stable.",
+    "srs_id": "R41.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R41.",
+      "scenarios": "S15"
+    }
+  },
+  {
+    "id": "R44",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "If the HFDS control process becomes corrupted mid-cycle:",
+    "srs_id": "R44",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Director \"corrupt control process\" -> reset to default state, block reactivation 20 s.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "R44.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the HFDS shall reset it to its default state, and",
+    "srs_id": "R44.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R44.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "R44.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "the HFDS shall block reactivation for 20 seconds.",
+    "srs_id": "R44.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent R44.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "R45",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "The HFDS shall log each of the following with a timestamp:",
+    "srs_id": "R45",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "Event log entries with sim timestamp for engagement, disengagement, warning, error code, takeover request.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R45.1",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "engagement,",
+    "srs_id": "R45.1",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R45.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R45.2",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "disengagement,",
+    "srs_id": "R45.2",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R45.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R45.3",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "warning,",
+    "srs_id": "R45.3",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R45.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R45.4",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "error code, and",
+    "srs_id": "R45.4",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R45.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "R45.5",
+    "section": "3.1.7 Faults, map data, and logging",
+    "text": "takeover request.",
+    "srs_id": "R45.5",
+    "prototype": {
+      "treatment": "LOG",
+      "how": "See parent R45.",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "SR1",
+    "section": "3.2 Safety Requirements",
+    "text": "If the driver does not take over after a reclaim warning or the final attention alert, the HFDS shall:",
+    "srs_id": "SR1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Minimal risk maneuver: shoulder if reachable within 60 s via one lane at a time (>= 2 s per lane), else stop in lane; hazards, OnStar, unlock doors.",
+      "scenarios": "S09,S12"
+    }
+  },
+  {
+    "id": "SR1.1",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall maneuver the vehicle to the right shoulder and bring it to a controlled stop if the shoulder can be safely reached within the time limit specified in SR1.1.1. Otherwise, the HFDS shall bring the vehicle to a controlled stop in its current lane.",
+    "srs_id": "SR1.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR1.",
+      "scenarios": "S09,S12"
+    }
+  },
+  {
+    "id": "SR1.1.1",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall evaluate shoulder reachability at fallback initiation and throughout the maneuver using the defined time, distance, and safe-path checks. If these checks fail or the shoulder has not been reached within 60 seconds of fallback initiation, the HFDS shall bring the vehicle to a controlled stop in its current lane.",
+    "srs_id": "SR1.1.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR1.1.",
+      "scenarios": "S09,S12"
+    }
+  },
+  {
+    "id": "SR1.1.2",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall move toward the right shoulder one adjacent lane at a time, maintaining travel in each entered lane for at least 2 seconds before the next lateral transition, including shoulder entry, while maintaining safe speed and vehicle separation.",
+    "srs_id": "SR1.1.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR1.1.",
+      "scenarios": "S09,S12"
+    }
+  },
+  {
+    "id": "SR1.2",
+    "section": "3.2 Safety Requirements",
+    "text": "turn on the hazard lights,",
+    "srs_id": "SR1.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR1.",
+      "scenarios": "S09,S12"
+    }
+  },
+  {
+    "id": "SR1.3",
+    "section": "3.2 Safety Requirements",
+    "text": "connect an OnStar emergency advisor, and",
+    "srs_id": "SR1.3",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "OnStar call shown as an HMI status (\"Connecting to OnStar advisor...\") and logged.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "SR1.4",
+    "section": "3.2 Safety Requirements",
+    "text": "unlock the doors so that emergency services can reach the occupants.",
+    "srs_id": "SR1.4",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Door-lock indicator switches to unlocked.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "SR2",
+    "section": "3.2 Safety Requirements",
+    "text": "The DATS shall detect when the driver camera is manipulated so that attention could be faked.",
+    "srs_id": "SR2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Director \"tamper driver camera\" -> DATS detectTampering() true -> treated as DATS loss (SR5).",
+      "scenarios": "S17"
+    }
+  },
+  {
+    "id": "SR3",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall detect any single point of failure and then hand control to the driver.",
+    "srs_id": "SR3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Any single point of failure without redundancy -> Class A takeover.",
+      "scenarios": "S08"
+    }
+  },
+  {
+    "id": "SR4",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall have hardware and sensor redundancy so that a single failure leaves enough data to hold the lane until the driver re-engages:",
+    "srs_id": "SR4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Lane position and lead distance each have two sources; losing one keeps HFDS engaged (SR4.4).",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "SR4.1",
+    "section": "3.2 Safety Requirements",
+    "text": "lane position shall come from at least two independent sources (for example, the front camera and the LiDAR map with GPS),",
+    "srs_id": "SR4.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR4.",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "SR4.2",
+    "section": "3.2 Safety Requirements",
+    "text": "lead-vehicle distance shall come from at least two independent sources (for example, the front radar and the front camera),",
+    "srs_id": "SR4.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR4.",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "SR4.3",
+    "section": "3.2 Safety Requirements",
+    "text": "the computing and power hardware shall have a backup able to hold the lane and brake to a stop after a primary failure, and",
+    "srs_id": "SR4.3",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Backup compute/power shown as a status flag; Director \"primary compute failure\" -> backup holds lane and requests takeover.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "SR4.4",
+    "section": "3.2 Safety Requirements",
+    "text": "when a sensor fault occurs and a redundant source is available, the HFDS shall switch to the redundant source, continue lane centering, and show the solid green light bar.",
+    "srs_id": "SR4.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent SR4.",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "SR5",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall treat loss of the Driver Attention System (camera blocked, disabled, or failed) as a single point of failure.",
+    "srs_id": "SR5",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "DATS camera blocked/disabled/failed = single point of failure -> Class A takeover.",
+      "scenarios": "S17"
+    }
+  },
+  {
+    "id": "SR6",
+    "section": "3.2 Safety Requirements",
+    "text": "If the driver does not respond to the final alert, the HFDS shall abort hands-free driving and perform the controlled stop in SR1.",
+    "srs_id": "SR6",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "No response to final alert -> SR1.",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "SR7",
+    "section": "3.2 Safety Requirements",
+    "text": "If the driver does not take control within the takeover period of 30 seconds, the HFDS shall perform the controlled stop in SR1.",
+    "srs_id": "SR7",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "No takeover within 30 s of takeover request -> SR1.",
+      "scenarios": "S12"
+    }
+  },
+  {
+    "id": "SR8",
+    "section": "3.2 Safety Requirements",
+    "text": "After a collision or airbag deployment, the HFDS shall place an emergency call to an OnStar advisor.",
+    "srs_id": "SR8",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Director \"collision / airbag\" -> OnStar emergency call status + log.",
+      "scenarios": "S18"
+    }
+  },
+  {
+    "id": "SR10",
+    "section": "3.2 Safety Requirements",
+    "text": "The HFDS shall continuously self-verify that all systems work correctly, using redundancy so that one error does not hide another.",
+    "srs_id": "SR10",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Continuous self-verification: every sensor/subsystem self-test each tick (IR29: every 50 ms = every tick at 20 Hz).",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "IR1",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall operate only on divided highways that the Path Prediction Subsystem has enabled from the LiDAR map.",
+    "srs_id": "IR1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Engage only on road segments with roadType DividedHighway and enabled in LiDAR map; UC17 detects end of enabled road ahead.",
+      "scenarios": "S03,S01"
+    }
+  },
+  {
+    "id": "IR2",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall operate only when the lane lines on both sides of the current lane are clearly visible and detected.",
+    "srs_id": "IR2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Both lane markings visible required (Lane.bothMarkingsVisible()).",
+      "scenarios": "S16"
+    }
+  },
+  {
+    "id": "IR3",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall operate only while the DATS detects an engaged driver.",
+    "srs_id": "IR3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Engagement requires an engaged driver. While engaged, attention loss is handled by R29-R31 escalation (see ISSUE-11).",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "IR4",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall operate only while every assist subsystem is engaged and reports no fault.",
+    "srs_id": "IR4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "All subsystems status OK required to engage/stay engaged (Degraded allowed only via SR4.4 redundancy).",
+      "scenarios": "S07,S08"
+    }
+  },
+  {
+    "id": "IR5",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall disengage, or refuse engagement, when any of the following holds:",
+    "srs_id": "IR5",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "ODD exclusions IR5.1-IR5.10: refuse engagement, or Class A reclaim if engaged.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.1",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "low light (night) or low-angle direct sunlight (sunrise) prevents lane detection,",
+    "srs_id": "IR5.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.2",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "the vehicle is in a construction zone or a tunnel,",
+    "srs_id": "IR5.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.3",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "the vehicle is on a road shoulder, a service drive, or a highway exit lane,",
+    "srs_id": "IR5.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.4",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "rain, fog, ice, snow, or road moisture is detected outside the ODD,",
+    "srs_id": "IR5.4",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.5",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "a trailer is attached and the vehicle lacks trailering capability,",
+    "srs_id": "IR5.5",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "vehicleConfig.trailerAttached / trailerCapable flags.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR5.6",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "a camera, LiDAR, or radar sensor is obstructed, damaged, or covered,",
+    "srs_id": "IR5.6",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.7",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "LiDAR map, navigation, or GPS data is in error or unavailable,",
+    "srs_id": "IR5.7",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR5.8",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "real-time data transfer or network connectivity falls below the required health level, The required health level is met only when all of the following hold: every subsystem reports status OK; sensor data is no older than 100 ms; GPS correction data is no older than 5 seconds; and the redundant sources for lane position and lead-vehicle distance agree within 0.3 m.",
+    "srs_id": "IR5.8",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Health level: all subsystems OK, sensor data age <= 100 ms, GPS correction age <= 5 s, redundant sources agree within 0.3 m.",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "IR5.9",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "the motion forecasting, self-supervision, or dynamic environment function is unavailable, or",
+    "srs_id": "IR5.9",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Status flags for motion forecasting, self-supervision, dynamic environment functions.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "IR5.10",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "a forward collision warning escalates to a takeover request.",
+    "srs_id": "IR5.10",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR5.",
+      "scenarios": "S03,S16"
+    }
+  },
+  {
+    "id": "IR6",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HMI shall display an \"HFDS available\" indicator only when every operating constraint in IR1 through IR5 and IR28 is met.",
+    "srs_id": "IR6",
+    "prototype": {
+      "treatment": "HMI",
+      "how": "\"HFDS available\" indicator iff IR1-IR5 and IR28 all hold (computed every tick, checklist panel shows each).",
+      "scenarios": "S01,S03"
+    }
+  },
+  {
+    "id": "IR7",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall engage only when the driver presses the dedicated HFDS button on the steering wheel or an equivalent control.",
+    "srs_id": "IR7",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Only the HFDS button input can engage.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "IR8",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall refuse engagement when the surrounding traffic is unstable, meaning that any of the following holds:",
+    "srs_id": "IR8",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Traffic-stability checks over sliding windows of surrounding-vehicle tracks.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR8.1",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "heavy braking: a surrounding vehicle decelerates at more than maxBrakingDecel.",
+    "srs_id": "IR8.1",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR8.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR8.2",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "extreme acceleration change: the acceleration of a surrounding vehicle changes by more than 10 ft/ within 1 second.",
+    "srs_id": "IR8.2",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR8.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR8.3",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "the gap to the lead vehicle changes by more than 30 percent of the trail distance within 3 seconds, or the time is under 1.0 second.\u201d",
+    "srs_id": "IR8.3",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "See parent IR8.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR9",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The Driver Assist System shall keep a trail distance of at least trail distance, which is never less than 2.0 seconds of travel time and is never less than the driver-selected gap.",
+    "srs_id": "IR9",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Trail distance never below 2.0 s of travel or driver gap.",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "IR10",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "After a controlled stop for an unresponsive driver, the HFDS shall stay unavailable until the next ignition cycle.",
+    "srs_id": "IR10",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "After SR1 stop for unresponsive driver: unavailable until Director \"ignition cycle\".",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "IR11",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall never remain in hands-free driving mode after the driver is deemed inactive.",
+    "srs_id": "IR11",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver inactive -> never remain hands-free (immediately SR1).",
+      "scenarios": "S09"
+    }
+  },
+  {
+    "id": "IR12",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "While the light bar flashes red, the HFDS shall not accelerate the vehicle.",
+    "srs_id": "IR12",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "No positive acceleration command while light bar flashing red (assert every tick).",
+      "scenarios": "S06,S09,S11"
+    }
+  },
+  {
+    "id": "IR13",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "Until the driver takes control, the HFDS shall hold the vehicle in its lane and let it coast without accelerating.",
+    "srs_id": "IR13",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Until takeover: hold lane, coast, no acceleration.",
+      "scenarios": "S11,S12"
+    }
+  },
+  {
+    "id": "IR14",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "Upon a fault, an invalid blue path, or a map mismatch, the HFDS shall immediately issue a Class A reclaim warning.",
+    "srs_id": "IR14",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Fault / invalid blue path / map mismatch -> immediate Class A.",
+      "scenarios": "S08,S16"
+    }
+  },
+  {
+    "id": "IR15",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "Driver braking shall always disengage the HFDS and the ACC.",
+    "srs_id": "IR15",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver brake always disengages HFDS and ACC, in every engaged state including alerts and SR1.",
+      "scenarios": "S13"
+    }
+  },
+  {
+    "id": "IR16",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall refuse engagement, and shall disengage if engaged, when the stored LiDAR map is more than 7 months old, and shall display an \"Update needed\" warning.",
+    "srs_id": "IR16",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Map older than 7 months (scenario simDate vs map lastUpdated) -> refuse/disengage, \"Update needed\".",
+      "scenarios": "S02"
+    }
+  },
+  {
+    "id": "IR22",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "While the HFDS is engaged, the Forward Collision System (automatic emergency braking) shall be set to \"Alert and Brake\".",
+    "srs_id": "IR22",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Forward Collision System mode indicator set to \"Alert and Brake\" while engaged.",
+      "scenarios": "S01"
+    }
+  },
+  {
+    "id": "IR23",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall block re-engagement after a high-score error code (75 to 100) until the fault is cleared.",
+    "srs_id": "IR23",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "High-severity (75-100) error blocks re-engagement until cleared.",
+      "scenarios": "S08"
+    }
+  },
+  {
+    "id": "IR24",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The fail-safe state shall be driver control: the HFDS shall hand control to the driver and shall not continue hands-free driving with degraded mapping or a sensor fault.",
+    "srs_id": "IR24",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Fail-safe = driver control; no degraded hands-free driving except SR4.4 redundant switch.",
+      "scenarios": "S08"
+    }
+  },
+  {
+    "id": "IR25",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "Driver steering, braking, or throttle input shall always take priority over the HFDS.",
+    "srs_id": "IR25",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Driver steering, braking, throttle always override HFDS commands in the same tick.",
+      "scenarios": "S13,S14"
+    }
+  },
+  {
+    "id": "IR26",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall not steer around objects. When it detects an object in the lane (debris, pothole, stopped vehicle, pedestrian), it shall issue a Class A reclaim warning.",
+    "srs_id": "IR26",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "In-lane object (debris, pothole, stopped vehicle, pedestrian) -> no avoidance, Class A.",
+      "scenarios": "S11,S12"
+    }
+  },
+  {
+    "id": "IR27",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall not command a vehicle speed above 85 mph.",
+    "srs_id": "IR27",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Commanded speed clamped to 85 mph (set speed UI also capped).",
+      "scenarios": "S05"
+    }
+  },
+  {
+    "id": "IR28",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "The HFDS shall engage only when the vehicle speed is above 3 mph.",
+    "srs_id": "IR28",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Engage only when speed > 3 mph.",
+      "scenarios": "S03"
+    }
+  },
+  {
+    "id": "IR29",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "A sensor shall perform a check every 50ms to validate working capabilities.",
+    "srs_id": "IR29",
+    "prototype": {
+      "treatment": "SIM",
+      "how": "Sensor self-check every 50 ms (one engine tick at 20 Hz).",
+      "scenarios": "all"
+    }
+  },
+  {
+    "id": "IR29b",
+    "section": "3.3 Operating Constraints (Invariant Requirements)",
+    "text": "Sensor error logs shall contain identifying metadata.",
+    "srs_id": "IR29",
+    "flags": [
+      "Duplicate ID in SRS (second IR29). Prototype refers to it as IR29b; see ISSUE-01."
+    ],
+    "prototype": {
+      "treatment": "LOG",
+      "how": "Sensor error log entries carry sensorId, type, status, lastReading timestamp.",
+      "scenarios": "S07"
+    }
+  },
+  {
+    "id": "IR17",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The HFDS shall have an active data service for real-time positioning while engaged.",
+    "srs_id": "IR17",
+    "prototype": {
+      "treatment": "STUB",
+      "how": "Positioning data-service status flag required while engaged.",
+      "scenarios": "S00"
+    }
+  },
+  {
+    "id": "IR18",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The Vehicle Control System shall execute commands only from the authenticated in-car Driver Assist System or from the driver's own controls.",
+    "srs_id": "IR18",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "Command-source authentication shown only in optional S19.",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "IR19",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The Vehicle Control System shall reject any command that arrives through an external network unless an authenticated service provider is connected.",
+    "srs_id": "IR19",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "External-network command rejection shown only in optional S19.",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "IR20",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The HFDS shall require cryptographic authorization for diagnostic access, and the authorization shall be tied to one specific purpose (crash investigation, full lock, or manufacturer or factory unlock).",
+    "srs_id": "IR20",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "Diagnostic access authorization: documented, not simulated.",
+      "scenarios": "-"
+    }
+  },
+  {
+    "id": "IR21",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The Human Machine Interface (HMI) subsystem shall execute only authorized commands.",
+    "srs_id": "IR21",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "HMI executes only authorized commands: documented; optional S19.",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "SR9",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "The HFDS shall ensure that an unauthorized entity cannot view or change the following internal data:",
+    "srs_id": "SR9",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "Not demonstrable in a browser simulation; listed in the trace panel as out of prototype scope (optional S19 shows rejected unauthorized command).",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "SR9.1",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "vehicle position,",
+    "srs_id": "SR9.1",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "See parent SR9.",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "SR9.2",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "sensor data, and",
+    "srs_id": "SR9.2",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "See parent SR9.",
+      "scenarios": "S19"
+    }
+  },
+  {
+    "id": "SR9.3",
+    "section": "3.4 Cybersecurity Requirements:",
+    "text": "control commands.",
+    "srs_id": "SR9.3",
+    "prototype": {
+      "treatment": "DOC",
+      "how": "See parent SR9.",
+      "scenarios": "S19"
+    }
+  }
+]
