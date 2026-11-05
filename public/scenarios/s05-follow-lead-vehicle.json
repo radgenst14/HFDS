@@ -1,0 +1,183 @@
+{
+  "id": "s05-follow-lead-vehicle",
+  "name": "Follow a lead vehicle: closing, coast, match, resume, follow a truck",
+  "description": "Ego at 70 mph closes on a 55 mph car, coasts to match it at the trail distance, resumes 70 mph when the car leaves the lane, then follows a truck at the larger truck trail distance.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD3 (4.3.3)",
+  "optional": false,
+  "requirements": [
+    "R4",
+    "R4.1",
+    "R4.2",
+    "R5",
+    "R6",
+    "R7",
+    "R21",
+    "R24",
+    "R25",
+    "IR9",
+    "IR27",
+    "UC13"
+  ],
+  "caption": {
+    "summary": "ACC zones in action: hold speed (closing), coast to match (coast), resume set speed, size-factor trail distance.",
+    "steps": [
+      "2 s: engage at 70 mph (set speed 70).",
+      "Car at 55 mph enters the selection distance → becomes lead (R4).",
+      "Closing zone: hold 70 (R5). Coast zone: coast down to 55 (R21).",
+      "Following at ≈ 161 ft (2.0 s × 80.7 ft/s, IR9).",
+      "55 s: the car changes to lane 1 → resume 70 mph (R24).",
+      "62 s: a 58 mph truck moves into lane 2 ahead → new lead, trail distance × 1.25 (R25)."
+    ],
+    "watchFor": [
+      "Colored zone bands ahead of the car (Closing / Coast / Safety).",
+      "Lead vehicle highlight and its size class.",
+      "Trail distance readout changes when the lead is a truck."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 110,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 70,
+    "setSpeedMph": 70,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 900,
+      "speedMph": 55,
+      "behavior": [
+        {
+          "t": 55,
+          "action": "changeLane",
+          "toLaneId": 1,
+          "durationS": 3
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "sizeClass": "Truck",
+      "laneId": 3,
+      "sFt": 1200,
+      "speedMph": 58,
+      "behavior": [
+        {
+          "t": 62,
+          "action": "changeLane",
+          "toLaneId": 2,
+          "durationS": 3
+        }
+      ]
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "lead",
+      "reqs": ["R4"],
+      "by": 12,
+      "vehicleId": 1
+    },
+    {
+      "check": "zoneSeen",
+      "reqs": ["R5", "R21"],
+      "by": 35,
+      "sequence": ["Closing", "Coast"]
+    },
+    {
+      "check": "speedMph",
+      "reqs": ["R21"],
+      "by": 45,
+      "approx": 55,
+      "tol": 1.5
+    },
+    {
+      "check": "gapAtLeastTrail",
+      "reqs": ["IR9", "R25"],
+      "to": 55,
+      "factor": 0.9,
+      "from": 45
+    },
+    {
+      "check": "speedMph",
+      "reqs": ["R24", "IR27"],
+      "by": 70,
+      "approx": 70,
+      "tol": 1.5
+    },
+    {
+      "check": "lead",
+      "reqs": ["R4"],
+      "by": 75,
+      "vehicleId": 2
+    },
+    {
+      "check": "trailDistanceFt",
+      "reqs": ["R25"],
+      "at": 105,
+      "approxFormula": "speedFtps*2.0*1.25",
+      "tol": 5
+    }
+  ]
+}

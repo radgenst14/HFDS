@@ -1,0 +1,200 @@
+{
+  "id": "s01-activation-success",
+  "name": "Activate HFDS on a supported highway",
+  "description": "Customer Scenario 1. Driver activates HFDS on a mapped divided highway in good conditions; all checks pass and HFDS engages using the current speed as the set speed.",
+  "customerScenario": 1,
+  "sequenceDiagram": "SD1 (4.3.1)",
+  "optional": false,
+  "requirements": [
+    "R12",
+    "R14",
+    "R15",
+    "R17",
+    "R33",
+    "R43",
+    "R45.1",
+    "R46.1",
+    "R47",
+    "R48",
+    "IR1",
+    "IR3",
+    "IR4",
+    "IR6",
+    "IR7",
+    "IR22",
+    "IR28"
+  ],
+  "caption": {
+    "summary": "All engagement checks pass, HFDS engages, ACC adopts the current speed, light bar turns solid green.",
+    "steps": [
+      "0 s: 'HFDS available' is lit (IR6).",
+      "2 s: driver presses the HFDS button; a second press 0.2 s later is ignored (R43).",
+      "Start sequence runs self-tests and validation (R14, R15, R47, R48).",
+      "~3 s: engaged, solid green, set speed = 62 mph (R17).",
+      "4 s: driver removes hands (allowed only while solid green, R33.1)."
+    ],
+    "watchFor": [
+      "Activation checklist turns green line by line.",
+      "Event log: engagement entry with timestamp (R45.1).",
+      "Forward Collision System indicator shows 'Alert and Brake' (IR22)."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 40,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 62,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 1200,
+      "speedMph": 64
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 2.2,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "available",
+      "reqs": [
+        "IR6"
+      ],
+      "at": 1.0,
+      "value": true
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R14",
+        "R42"
+      ],
+      "at": 2.5,
+      "value": "STARTING"
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R43"
+      ],
+      "by": 2.3,
+      "type": "info",
+      "contains": "debounce"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R48",
+        "R15"
+      ],
+      "by": 3.2,
+      "value": "HANDS_FREE"
+    },
+    {
+      "check": "setSpeedMph",
+      "reqs": [
+        "R17"
+      ],
+      "by": 3.2,
+      "approx": 62,
+      "tol": 0.5
+    },
+    {
+      "check": "lightBar",
+      "reqs": [
+        "R33"
+      ],
+      "by": 3.2,
+      "value": "SolidGreen"
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "IR22"
+      ],
+      "by": 3.2,
+      "field": "fcsMode",
+      "value": "AlertAndBrake"
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R45.1"
+      ],
+      "by": 3.2,
+      "type": "engagement"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R33.1"
+      ],
+      "at": 10.0,
+      "value": "HANDS_FREE"
+    }
+  ]
+}

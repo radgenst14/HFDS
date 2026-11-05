@@ -1,0 +1,153 @@
+{
+  "id": "s03-rejected-conditions",
+  "name": "Activation rejected: outside the ODD (rain)",
+  "description": "Rain and wet pavement put the vehicle outside the ODD. Engagement is refused until the Director clears the weather. Variants (night, construction, trailer, unstable traffic, speed ≤ 3 mph) are available from the Director panel.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": [
+    "R13",
+    "R15.1",
+    "R16",
+    "R49",
+    "IR5.4",
+    "IR6",
+    "UC2",
+    "IR5.1",
+    "IR5.2",
+    "IR5.3",
+    "IR5.5",
+    "IR5.6",
+    "IR5.7",
+    "IR5.8",
+    "IR5.10",
+    "IR8",
+    "IR8.1",
+    "IR8.2",
+    "IR8.3",
+    "IR28"
+  ],
+  "caption": {
+    "summary": "Weather outside the ODD blocks engagement (IR5.4); clearing it makes HFDS available.",
+    "steps": [
+      "0 s: raining, road moisture 0.5 — checklist shows IR5.4 failing.",
+      "3 s: button press is rejected with the reason (R16, R49).",
+      "8 s: Director sets weather to Clear / dry.",
+      "10 s: driver presses again → engaged."
+    ],
+    "watchFor": [
+      "Try the other Director variants, each shows its failed check: Night or low sun (IR5.1), Construction or tunnel (IR5.2), Ego on shoulder/exit lane (IR5.3), Trailer without capability (IR5.5), Obstructed sensor (IR5.6), GPS/map error (IR5.7), Stale GPS correction (IR5.8), FCW escalation (IR5.10), Hard braking ahead (IR8.1), Erratic acceleration (IR8.2), Tailgating gap (IR8.3), Speed 2 mph (IR28)."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 40,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Rain",
+    "lightCondition": "Day",
+    "roadMoisture": 0.5,
+    "visibilityM": 400
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 55,
+    "setSpeedMph": null,
+    "gapSetting": "Medium"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 3.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 8.0,
+      "kind": "inject",
+      "action": "setEnvironment",
+      "args": {
+        "weather": "Clear",
+        "roadMoisture": 0.0,
+        "visibilityM": 1000
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    }
+  ],
+  "expect": [
+    {
+      "check": "available",
+      "reqs": [
+        "IR5.4"
+      ],
+      "at": 1.0,
+      "value": false
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R49"
+      ],
+      "by": 3.1,
+      "type": "warning",
+      "contains": "IR5.4"
+    },
+    {
+      "check": "mode",
+      "reqs": [],
+      "at": 5.0,
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "available",
+      "reqs": [
+        "IR6"
+      ],
+      "by": 8.5,
+      "value": true
+    },
+    {
+      "check": "mode",
+      "reqs": [],
+      "by": 11.5,
+      "value": "HANDS_FREE"
+    }
+  ]
+}

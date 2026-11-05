@@ -1,0 +1,120 @@
+{
+  "id": "s19-unauthorized-command",
+  "name": "Unauthorized external command rejected",
+  "description": "An unauthenticated command arrives over an external network (simulated). Vehicle Control rejects it and the attempt is logged.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": true,
+  "requirements": [
+    "IR18",
+    "IR19",
+    "IR21",
+    "SR9"
+  ],
+  "caption": {
+    "summary": "Command-source authentication (IR18, IR19). Illustrative only.",
+    "steps": [
+      "10 s: Director injects an unauthenticated 'accelerate' command from an external source.",
+      "Rejected; vehicle behavior unchanged; log entry."
+    ],
+    "watchFor": [
+      "Speed unchanged."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 20,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "inject",
+      "action": "externalCommand",
+      "args": {
+        "kind": "accelerate",
+        "value": 5.0,
+        "authenticated": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "logged",
+      "reqs": [
+        "IR19"
+      ],
+      "by": 10.1,
+      "type": "warning",
+      "contains": "rejected"
+    },
+    {
+      "check": "speedMph",
+      "reqs": [
+        "IR18"
+      ],
+      "at": 11.0,
+      "approx": 65,
+      "tol": 1.0
+    }
+  ]
+}

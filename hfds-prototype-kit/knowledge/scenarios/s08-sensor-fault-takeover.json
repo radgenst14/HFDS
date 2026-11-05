@@ -1,0 +1,205 @@
+{
+  "id": "s08-sensor-fault-takeover",
+  "name": "Sensor fault without redundancy: takeover and re-engagement rules",
+  "description": "The radar fails (covered by the camera), then the front camera fails, leaving no lead-distance source. HFDS issues a Class A takeover; the driver grips the wheel. Re-engagement waits for the fault to clear and the 30 s buffer.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD4 (4.3.4) — confidence below threshold",
+  "optional": false,
+  "requirements": [
+    "R9",
+    "R37",
+    "R38",
+    "R38.2",
+    "R38.4",
+    "SR3",
+    "IR14",
+    "IR24",
+    "R35",
+    "R40",
+    "UC18",
+    "UC19"
+  ],
+  "caption": {
+    "summary": "Loss of both lead-distance sources is a single point of failure (SR3) → takeover; middle-severity rules gate re-engagement (R38.2).",
+    "steps": [
+      "10 s: radar fails (still OK via camera).",
+      "20 s: front camera fails → Class A 'Take steering control immediately' (IR14).",
+      "23 s: driver grips with both hands → control transferred (R35, R40).",
+      "40 s: Director clears the faults.",
+      "'HFDS available' returns only after the 30 s buffer (≈ 70 s) and passing checks (R38.2)."
+    ],
+    "watchFor": [
+      "Re-engagement countdown in the checklist panel."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 90,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 250,
+      "speedMph": 65
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "inject",
+      "action": "failSensor",
+      "args": {
+        "sensorId": "RADAR_FRONT",
+        "status": "Failed"
+      }
+    },
+    {
+      "t": 20.0,
+      "kind": "inject",
+      "action": "failSensor",
+      "args": {
+        "sensorId": "CAM_FRONT",
+        "status": "Obstructed"
+      }
+    },
+    {
+      "t": 23.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    },
+    {
+      "t": 40.0,
+      "kind": "inject",
+      "action": "clearAllFaults"
+    },
+    {
+      "t": 75.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    }
+  ],
+  "expect": [
+    {
+      "check": "mode",
+      "reqs": [],
+      "at": 15,
+      "value": "HANDS_FREE"
+    },
+    {
+      "check": "warningActive",
+      "reqs": [
+        "IR14",
+        "SR3"
+      ],
+      "by": 20.1,
+      "cls": "A",
+      "reason": "SENSOR_FAULT"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R35",
+        "R40"
+      ],
+      "by": 23.1,
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "hmi",
+      "reqs": [
+        "R40"
+      ],
+      "by": 23.1,
+      "field": "controlTransferBanner",
+      "nonEmpty": true
+    },
+    {
+      "check": "available",
+      "reqs": [
+        "R38.2"
+      ],
+      "to": 69.9,
+      "value": false,
+      "from": 40
+    },
+    {
+      "check": "available",
+      "reqs": [
+        "R38.2"
+      ],
+      "by": 71,
+      "value": true
+    },
+    {
+      "check": "mode",
+      "reqs": [],
+      "by": 76.5,
+      "value": "HANDS_FREE"
+    }
+  ]
+}

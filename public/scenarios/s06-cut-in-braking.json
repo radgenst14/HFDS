@@ -1,0 +1,200 @@
+{
+  "id": "s06-cut-in-braking",
+  "name": "Cut-ins: brake within capability, then reclaim warning",
+  "description": "A car cuts in at a safe distance and HFDS slows smoothly. A second, much slower car cuts in too close; the required deceleration exceeds the braking limit and HFDS issues a Class A reclaim warning. The driver brakes.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": [
+    "UC11",
+    "UC14",
+    "R7",
+    "R22",
+    "R22.1",
+    "R22.2",
+    "R23",
+    "R28.1",
+    "IR12",
+    "IR15",
+    "R50"
+  ],
+  "caption": {
+    "summary": "R22 braking when a_req ≤ maxBrakingDecel; R23 reclaim warning when it is not.",
+    "steps": [
+      "10 s: car from lane 3 cuts in ≈ 175 ft ahead at 55 mph → coasting / mild braking (R22).",
+      "30 s: car from lane 1 slows to 25 mph and cuts in ≈ 60 ft ahead → a_req far above 11.5 ft/s² → Class A (R23).",
+      "Light bar flashing red; HFDS does not accelerate (IR12).",
+      "31.5 s: driver brakes → HFDS and ACC disengage (IR15, R50)."
+    ],
+    "watchFor": [
+      "a_req readout vs maxBrakingDecel.",
+      "Lane-intrusion highlight on the cutting-in vehicle (UC11)."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 45,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 3,
+      "sFt": 200,
+      "speedMph": 65,
+      "behavior": [
+        {
+          "t": 8,
+          "action": "setSpeed",
+          "speedMph": 55,
+          "decelFtps2": 5
+        },
+        {
+          "t": 10,
+          "action": "changeLane",
+          "toLaneId": 2,
+          "durationS": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "sizeClass": "Car",
+      "laneId": 1,
+      "sFt": 300,
+      "speedMph": 55,
+      "behavior": [
+        {
+          "t": 27,
+          "action": "setSpeed",
+          "speedMph": 25,
+          "decelFtps2": 15
+        },
+        {
+          "t": 30,
+          "action": "changeLane",
+          "toLaneId": 2,
+          "durationS": 1.5
+        }
+      ]
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 31.5,
+      "kind": "driver",
+      "action": "setBrake",
+      "args": {
+        "pressed": true,
+        "rate": 8.0
+      }
+    },
+    {
+      "t": 34.0,
+      "kind": "driver",
+      "action": "setBrake",
+      "args": {
+        "pressed": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "noWarningClass",
+      "reqs": ["R22.2"],
+      "to": 29,
+      "cls": "A",
+      "from": 10
+    },
+    {
+      "check": "gapAboveCushion",
+      "reqs": ["R22"],
+      "to": 29,
+      "from": 10
+    },
+    {
+      "check": "warningActive",
+      "reqs": ["R23", "R28.1"],
+      "by": 30.6,
+      "cls": "A",
+      "reason": "BRAKING_INSUFFICIENT"
+    },
+    {
+      "check": "lightBar",
+      "reqs": ["UC19"],
+      "by": 30.6,
+      "value": "FlashingRed"
+    },
+    {
+      "check": "mode",
+      "reqs": ["IR15", "R50"],
+      "by": 31.6,
+      "value": "UNAVAILABLE"
+    },
+    {
+      "check": "logged",
+      "reqs": ["R50.3"],
+      "by": 31.6,
+      "type": "disengagement"
+    }
+  ]
+}

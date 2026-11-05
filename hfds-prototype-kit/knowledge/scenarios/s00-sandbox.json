@@ -1,0 +1,100 @@
+{
+  "id": "s00-sandbox",
+  "name": "Sandbox — free drive",
+  "description": "Three-lane divided highway with light traffic and every Director control enabled. Use it to explore any requirement interactively.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": [
+    "R44",
+    "SR4.3",
+    "IR5.9",
+    "IR17"
+  ],
+  "caption": {
+    "summary": "Free drive. Use the Driver panel to engage HFDS and the Director panel to inject faults, weather, hazards and traffic events.",
+    "steps": [
+      "Press the HFDS button (H) when 'HFDS available' is lit.",
+      "Take your hands off the wheel once the light bar is solid green.",
+      "Try any Director injection and watch the light bar, cluster message and event log."
+    ],
+    "watchFor": [
+      "Availability checklist on the left shows which IR constraints pass.",
+      "Requirement trace panel lists every requirement exercised."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 900,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 700,
+      "speedMph": 63
+    },
+    {
+      "id": 2,
+      "sizeClass": "SemiTruck",
+      "laneId": 1,
+      "sFt": 300,
+      "speedMph": 58
+    },
+    {
+      "id": 3,
+      "sizeClass": "SUV",
+      "laneId": 3,
+      "sFt": -200,
+      "speedMph": 70
+    }
+  ],
+  "hazards": [],
+  "timeline": [],
+  "expect": []
+}

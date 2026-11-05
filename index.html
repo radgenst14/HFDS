@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="CSE 435 Group 3 Hands-Free Driving System prototype: a requirements-validation simulation, not vehicle software."
+    />
+    <title>HFDS Prototype — CSE 435 Group 3</title>
+    <link rel="stylesheet" href="./src/client/styles.css" />
+  </head>
+  <body>
+    <!-- Layout regions follow doc 15 Part B, B6. Regions are empty until M1–M6 fill them. -->
+    <div id="app" class="app">
+      <!-- 1. Top bar: scenario picker, play/pause/step, time scale, reset, link, export log -->
+      <header id="top-bar" class="region top-bar" aria-label="Session controls">
+        <h1 class="title">HFDS Prototype</h1>
+        <label class="picker">
+          <span>Scenario</span>
+          <select id="scenario-picker" data-testid="scenario-picker" aria-label="Scenario preset">
+            <option value="" disabled selected>Loading presets…</option>
+          </select>
+        </label>
+        <div id="session-controls" class="session-controls" role="group" aria-label="Playback">
+          <button type="button" id="btn-play-pause" disabled>Pause</button>
+          <button type="button" id="btn-step" disabled>Step</button>
+          <label>
+            <span>Time scale</span>
+            <select id="time-scale" disabled>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select>
+          </label>
+          <button type="button" id="btn-reset" disabled>Reset</button>
+          <button type="button" id="btn-share" disabled>Copy link</button>
+          <button type="button" id="btn-export-log" disabled>Export log</button>
+        </div>
+        <p class="disclaimer">Simulation for requirements validation — not vehicle software.</p>
+      </header>
+
+      <!-- 4. Left column: caption panel and availability / activation checklist -->
+      <aside id="left-column" class="region left-column" aria-label="Scenario information">
+        <section id="caption-panel" class="panel" aria-labelledby="caption-heading">
+          <h2 id="caption-heading">Scenario</h2>
+          <div id="caption-body" class="panel-body"></div>
+        </section>
+        <section id="checklist-panel" class="panel" aria-labelledby="checklist-heading">
+          <h2 id="checklist-heading">Availability checklist</h2>
+          <ul id="checklist-body" class="panel-body"></ul>
+        </section>
+      </aside>
+
+      <main id="center-column" class="center-column">
+        <!-- 2. Road view (PixiJS) -->
+        <section id="road-view" class="region road-view" aria-label="Road view"></section>
+        <!-- 3. Cluster (HTML): light bar, message, state badge, IR6 indicator, speeds, warnings -->
+        <section
+          id="cluster"
+          class="region cluster"
+          aria-label="Instrument cluster"
+          aria-live="polite"
+        ></section>
+      </main>
+
+      <!-- 5. Right column: Driver panel above Director panel (kept visually separate, B1) -->
+      <aside id="right-column" class="region right-column" aria-label="Controls">
+        <section id="driver-panel" class="panel driver-panel" aria-labelledby="driver-heading">
+          <h2 id="driver-heading">Driver</h2>
+          <div id="driver-body" class="panel-body"></div>
+        </section>
+        <section
+          id="director-panel"
+          class="panel director-panel"
+          aria-labelledby="director-heading"
+        >
+          <h2 id="director-heading">Director</h2>
+          <div id="director-body" class="panel-body"></div>
+        </section>
+      </aside>
+
+      <!-- 6. Bottom drawer: event log (R45) and requirement trace panel -->
+      <footer id="bottom-drawer" class="region bottom-drawer" aria-label="Event log and trace">
+        <section id="event-log-panel" class="panel" aria-labelledby="event-log-heading">
+          <h2 id="event-log-heading">Event log</h2>
+          <ol id="event-log-body" class="panel-body"></ol>
+        </section>
+        <section id="trace-panel" class="panel" aria-labelledby="trace-heading">
+          <h2 id="trace-heading">Requirement trace</h2>
+          <div id="trace-body" class="panel-body"></div>
+        </section>
+      </footer>
+    </div>
+    <script type="module" src="./src/client/main.ts"></script>
+  </body>
+</html>

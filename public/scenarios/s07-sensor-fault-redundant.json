@@ -1,0 +1,156 @@
+{
+  "id": "s07-sensor-fault-redundant",
+  "name": "Sensor faults covered by redundant sources",
+  "description": "The front radar fails, then the GPS receiver fails. Each has an independent partner source, so HFDS switches sources and keeps lane centering with a solid green light bar.",
+  "customerScenario": null,
+  "sequenceDiagram": "SD4 (4.3.4) — confidence above threshold",
+  "optional": false,
+  "requirements": [
+    "R9",
+    "R9.1",
+    "R9.2",
+    "R37",
+    "SR4",
+    "SR4.1",
+    "SR4.2",
+    "SR4.4",
+    "SR10",
+    "IR29",
+    "IR29b",
+    "R45.4"
+  ],
+  "caption": {
+    "summary": "Single sensor failures with redundancy do not interrupt hands-free driving (SR4.4) but are logged as error codes (R37).",
+    "steps": [
+      "15 s: front radar fails → lead distance from the front camera (SR4.2).",
+      "30 s: GPS receiver fails → lane position from the front camera (SR4.1).",
+      "Light bar stays solid green; HMI notes the degraded source."
+    ],
+    "watchFor": [
+      "Sensor status panel turns the failed sensor red and shows the active source.",
+      "Error codes E102 and E104 with severity and sensor metadata (R37, IR29b)."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 60,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [
+    {
+      "id": 1,
+      "sizeClass": "Car",
+      "laneId": 2,
+      "sFt": 250,
+      "speedMph": 65
+    }
+  ],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 15.0,
+      "kind": "inject",
+      "action": "failSensor",
+      "args": {
+        "sensorId": "RADAR_FRONT",
+        "status": "Failed"
+      }
+    },
+    {
+      "t": 30.0,
+      "kind": "inject",
+      "action": "failSensor",
+      "args": {
+        "sensorId": "GPS_1",
+        "status": "Failed"
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "logged",
+      "reqs": ["R37", "IR29b"],
+      "by": 15.1,
+      "type": "error",
+      "code": "E102"
+    },
+    {
+      "check": "mode",
+      "reqs": ["SR4.4"],
+      "to": 60,
+      "value": "HANDS_FREE",
+      "from": 15
+    },
+    {
+      "check": "lightBar",
+      "reqs": ["SR4.4"],
+      "to": 60,
+      "value": "SolidGreen",
+      "from": 15
+    },
+    {
+      "check": "logged",
+      "reqs": ["R9.2"],
+      "by": 30.1,
+      "type": "error",
+      "code": "E104"
+    }
+  ]
+}

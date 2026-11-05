@@ -1,0 +1,144 @@
+{
+  "id": "s10-inattention-recovered",
+  "name": "Driver looks back during the second alert",
+  "description": "The driver looks away long enough to trigger the first and second alerts, then looks back at the road. The alert is cancelled and hands-free driving continues.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": [
+    "R27",
+    "R29",
+    "R30",
+    "R32",
+    "UC16"
+  ],
+  "caption": {
+    "summary": "Re-engaging attention cancels the active alert (R32).",
+    "steps": [
+      "10 s: eyes off road.",
+      "13 s: first alert.",
+      "43 s: second alert.",
+      "45 s: eyes back on road → alert cancelled, solid green."
+    ],
+    "watchFor": [
+      "Cancellation is logged."
+    ]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 60,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10.0,
+      "kind": "driver",
+      "action": "setGaze",
+      "args": {
+        "eyesOnRoad": false
+      }
+    },
+    {
+      "t": 45.0,
+      "kind": "driver",
+      "action": "setGaze",
+      "args": {
+        "eyesOnRoad": true
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "mode",
+      "reqs": [
+        "R30"
+      ],
+      "at": 43.1,
+      "value": "ALERT_SECOND"
+    },
+    {
+      "check": "mode",
+      "reqs": [
+        "R32"
+      ],
+      "by": 45.1,
+      "value": "HANDS_FREE"
+    },
+    {
+      "check": "lightBar",
+      "reqs": [
+        "R32"
+      ],
+      "by": 45.1,
+      "value": "SolidGreen"
+    },
+    {
+      "check": "logged",
+      "reqs": [
+        "R32"
+      ],
+      "by": 45.1,
+      "type": "info",
+      "contains": "cancel"
+    }
+  ]
+}
