@@ -29,7 +29,7 @@ export class Driver {
   gripAreas: GripState;
   /** ACC set speed request (mph); applied by SpeedManagement in M3 (IR27 cap). */
   requestedSetSpeedMph: number | null;
-  /** Sim times of HFDS button presses not yet handled (IR7, R12; consumed from M2). */
+  /** Sim times of HFDS button presses not yet handled by the HFDS (IR7, R12). */
   pendingButtonPresses: number[] = [];
 
   constructor(scenario: Scenario) {
@@ -88,10 +88,6 @@ export class Driver {
         break;
       case 'setGaze':
         this.eyeDirection = action.eyesOnRoad ? EyeDirection.OnRoad : EyeDirection.OffRoad;
-        // DATS (R27, M4) decides attention; until then the level mirrors gaze.
-        this.attentionLevel = action.eyesOnRoad
-          ? AttentionLevel.Engaged
-          : AttentionLevel.Inattentive;
         break;
       case 'setGap':
         this.setFollowGap(action.gapSetting);

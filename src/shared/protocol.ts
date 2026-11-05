@@ -67,6 +67,8 @@ export interface AvailabilityCheck {
   label: string;
   pass: boolean;
   reqs: string[];
+  /** Why the line fails (only when pass is false). */
+  detail?: string;
 }
 
 export interface AccSnapshot {

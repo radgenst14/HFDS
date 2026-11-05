@@ -10,6 +10,7 @@ import {
   DRIVER_MAX_ACCEL_FTPS2,
   DRIVER_MAX_LATERAL_SPEED_FTPS,
   MAX_STEERING_ANGLE_DEG,
+  MIN_ENGAGE_SPEED_MPH,
   MPH_TO_FTPS,
 } from '../../shared/constants';
 import { SubsystemStatus, type VehicleState } from '../../shared/domain';
@@ -42,6 +43,28 @@ export class VehicleControl {
   /** ft/s² */
   get currentAcceleration(): number {
     return this.ego.accel;
+  }
+
+  /**
+   * R48.1 (A-42): the vehicle activation conditions are met when VehicleControl is OK,
+   * the speed is above 3 mph (IR28) and the driver is not braking (IR15 would disengage
+   * at once).
+   */
+  checkActivationConditions(driver: Driver): { met: boolean; problems: string[] } {
+    const problems: string[] = [];
+    if (this.status !== SubsystemStatus.OK) problems.push(`VehicleControl ${this.status}`);
+    if (this.currentSpeed <= MIN_ENGAGE_SPEED_MPH) {
+      problems.push(
+        `speed ${this.currentSpeed.toFixed(1)} mph not above ${MIN_ENGAGE_SPEED_MPH} mph`,
+      );
+    }
+    if (driver.brakePressed) problems.push('brake pedal pressed');
+    return { met: problems.length === 0, problems };
+  }
+
+  /** R48.2: confirm the engagement to the DriverAssistSystem. */
+  confirmEngagement(): boolean {
+    return this.status === SubsystemStatus.OK;
   }
 
   detectDriverBraking(driver: Driver): boolean {

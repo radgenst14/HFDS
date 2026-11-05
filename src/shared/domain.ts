@@ -406,6 +406,8 @@ export interface HmiState {
   hudMessage?: string;
   /** R49 activation warning naming the failed checks. */
   activationWarning?: string;
+  /** R16.3 brief light-bar error flash after a rejected press (A-44; only if hasLightBar). */
+  lightBarError: boolean;
   seatVibration: SeatVibration;
   audibleAlert: boolean;
   voicePrompt?: string;
@@ -430,6 +432,7 @@ export const HMI_FIELDS = [
   'dashboardError',
   'hudMessage',
   'activationWarning',
+  'lightBarError',
   'seatVibration',
   'audibleAlert',
   'voicePrompt',

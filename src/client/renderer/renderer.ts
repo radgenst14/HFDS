@@ -35,6 +35,8 @@ export class RoadRenderer {
     app.canvas.setAttribute('data-testid', 'road-canvas');
     app.canvas.setAttribute('aria-label', 'Top-down road view');
     host.appendChild(app.canvas);
+    // PixiJS `resizeTo` only follows window resizes; follow the container too.
+    new ResizeObserver(() => app.resize()).observe(host);
     return new RoadRenderer(app);
   }
 

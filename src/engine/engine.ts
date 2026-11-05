@@ -5,41 +5,50 @@
  * The Worker host (worker.ts) calls step(); tests call it directly. Same scenario + seed
  * + input log ⇒ identical state hash (replay test).
  *
- * M1 implements tick-order steps 1, 2, 8, 9, 10 and 11. Steps 3–7 (sensors, position,
- * driver assist, DATS, HFDS mode machine) arrive in M2–M5.
+ * Tick order (doc 13 §11):
+ *   1 inputs, injections, timeline · 2 world · 3–6 HFDS sense() · 7 HFDS updateMode()
+ *   8 VehicleControl arbitration · 9 ego kinematics · 10 HMI · 11 events/snapshot.
  */
 import {
   DT_S,
+  EGO_SIZE_CLASS,
   EGO_START_S_FT,
-  GAP_SETTINGS_S,
   MPH_TO_FTPS,
+  SIZE_FACTOR,
   SNAPSHOT_WINDOW_AHEAD_FT,
   SNAPSHOT_WINDOW_BEHIND_FT,
+  VEHICLE_DIMENSIONS_FT,
   type TimeScale,
 } from '../shared/constants';
 import {
-  enumValues,
-  HfdsMode,
+  LaneType,
   LogEntryType,
-  SENSOR_TYPES,
   SensorId,
-  SensorStatus,
   type Environment,
+  type HazardType,
+  type HfdsMode,
+  type HmiState,
+  type LightBarState,
   type LogEntry,
   type LogFile,
+  type SensorStatus,
+  type SubsystemFlag,
+  type WarningClass,
+  type WarningReason,
 } from '../shared/domain';
 import type { DirectorAction, DriverAction, Snapshot } from '../shared/protocol';
 import { TimelineEventSchema, type Scenario } from '../shared/scenario-schema';
 import { simTimeOf } from './clock';
 import { canonicalJson, hashString } from './hash';
-import { EventLog } from './hfds/event-log';
-import { initialHmiState } from './hfds/hmi';
-import { VehicleControl } from './hfds/vehicle-control';
+import { HFDS, type Anchors } from './hfds/hfds';
+import type { EventLog } from './hfds/event-log';
+import type { VehicleControl } from './hfds/vehicle-control';
 import { Rng } from './rng';
 import { TimelineRunner, type TimedEvent } from './scenario/timeline';
 import { Driver } from './world/driver';
 import { EnvironmentState } from './world/environment';
 import { HazardField } from './world/hazards';
+import { LiDARMap } from './world/lidar-map';
 import { Road } from './world/road';
 import { TrafficModel } from './world/traffic';
 
@@ -54,6 +63,43 @@ export interface StepResult {
   tick: number;
   entries: LogEntry[];
   finished: FinishReason | null;
+}
+
+/**
+ * Per-tick state the expectation runner reads (doc 14 "Expectations"). Taken after each
+ * step, so `t` is the end time of the tick (= the snapshot's simTime).
+ */
+export interface Observation {
+  t: number;
+  tick: number;
+  mode: HfdsMode;
+  available: boolean;
+  lightBar: LightBarState;
+  hmi: HmiState;
+  setSpeedMph: number | null;
+  speedMph: number;
+  speedFtps: number;
+  accActive: boolean;
+  leadId: number | null;
+  leadSizeClass: string | null;
+  zone: string | null;
+  gapFt: number | null;
+  trailDistanceFt: number;
+  safetyCushionFt: number;
+  timeGapS: number;
+  sizeFactor: number;
+  laneId: number;
+  egoS: number;
+  /** R18: ego fully inside its lane */
+  inLane: boolean;
+  targetOffset: number;
+  /** vehicles alongside the ego in an adjacent lane (UC12) */
+  besideVehicleIds: number[];
+  /** HFDS longitudinal command this tick (ft/s²; IR12), 0 until M3 */
+  hfdsAccelCmd: number;
+  warnings: Array<{ cls: WarningClass; reason: WarningReason }>;
+  /** distance to the nearest hazard ahead in the ego's lane (ft) */
+  hazardAheadFt: number | null;
 }
 
 /** Validates a client intent against the same schema as timeline events (doc 14). */
@@ -83,14 +129,13 @@ export class Engine {
   readonly traffic: TrafficModel;
   readonly hazards: HazardField;
   readonly driver: Driver;
-  readonly vehicleControl: VehicleControl;
-  readonly eventLog: EventLog;
+  readonly map: LiDARMap;
+  readonly hfds: HFDS;
   private readonly timeline: TimelineRunner;
 
   private tickCount = 0;
   private queue: InputLogEntry[] = [];
   private readonly recorded: InputLogEntry[] = [];
-  private readonly trace = new Set<string>();
   private finishedReason: FinishReason | null = null;
 
   constructor(scenario: Scenario) {
@@ -101,12 +146,22 @@ export class Engine {
     this.traffic = new TrafficModel(scenario.traffic, EGO_START_S_FT, this.road);
     this.hazards = new HazardField(scenario.hazards);
     this.driver = new Driver(scenario);
-    this.vehicleControl = new VehicleControl({
-      s: EGO_START_S_FT,
-      y: this.road.laneCenterY(scenario.ego.laneId),
-      speedMph: scenario.ego.speedMph,
-    });
-    this.eventLog = new EventLog();
+    this.map = new LiDARMap(scenario.map);
+    this.hfds = new HFDS(
+      {
+        scenario,
+        road: this.road,
+        environment: this.environment,
+        traffic: this.traffic,
+        driver: this.driver,
+        map: this.map,
+      },
+      {
+        s: EGO_START_S_FT,
+        y: this.road.laneCenterY(scenario.ego.laneId),
+        speedMph: scenario.ego.speedMph,
+      },
+    );
     this.timeline = new TimelineRunner(scenario.timeline);
     this.log(
       LogEntryType.info,
@@ -114,6 +169,22 @@ export class Engine {
       `Scenario "${scenario.id}" loaded (seed ${scenario.seed})`,
       [],
     );
+    // Initial HFDS state so the first snapshot already shows the checklist.
+    this.hfds.sense(0);
+    this.hfds.updateMode(0);
+    this.hfds.updateHmi(0);
+  }
+
+  get vehicleControl(): VehicleControl {
+    return this.hfds.vehicleControl;
+  }
+
+  get eventLog(): EventLog {
+    return this.hfds.eventLog;
+  }
+
+  get anchors(): Anchors {
+    return this.hfds.anchors;
   }
 
   get tick(): number {
@@ -151,35 +222,44 @@ export class Engine {
   // -------------------------------------------------------------------------
 
   step(): StepResult {
-    if (this.finishedReason)
+    if (this.finishedReason) {
       return { tick: this.tickCount, entries: [], finished: this.finishedReason };
+    }
     const t = this.simTime;
+    const hfds = this.hfds;
 
     // 1. Client inputs and Director injections, then scenario timeline events.
     for (const q of this.queue) {
       const applied = { ...q, tick: this.tickCount } as InputLogEntry;
       this.recorded.push(applied);
-      if (applied.type === 'input') this.driver.apply(applied.action, t);
-      else this.applyInject(applied.action.kind, applied.action.args ?? {});
+      if (applied.type === 'input') this.applyDriverAction(applied.action, t);
+      else this.applyInject(applied.action.kind, applied.action.args ?? {}, t);
     }
     this.queue = [];
     for (const e of this.timeline.due(t)) this.applyTimelineEvent(e, t);
 
-    // 2. World: scripted traffic, hazards (static), environment (changed by injections).
+    // 2. World: scripted traffic; hazards are static; environment changes by injection.
     this.traffic.advance(DT_S, t);
 
-    // 3–7. Sensors, VehiclePosition/PathPrediction, DriverAssistSystem, DATS, HFDS
-    //      mode machine: M2–M5.
+    // 3–6. Sensors (IR29), VehiclePosition + PathPrediction (R3, R2), DriverAssistSystem
+    //      (R19, R4, IR8 windows), DATS (R27).
+    hfds.sense(t);
 
-    // 8. VehicleControl arbitrates driver input (IR25); no HFDS commands yet (A-26).
+    // 7. HFDS mode machine: availability, button, transitions.
+    hfds.updateMode(t);
+
+    // 8. VehicleControl arbitrates driver input (IR25); HFDS commands from M3 (A-26).
     const cmd = this.vehicleControl.arbitrate(this.driver);
 
     // 9. Integrate ego kinematics with the fixed dt.
     this.vehicleControl.integrate(cmd, DT_S, this.road);
 
+    // 10. HMI state (R46).
+    hfds.updateHmi(t);
+
     this.tickCount++;
 
-    // 10. Run end (A-37).
+    // Run end (A-37).
     const ego = this.vehicleControl.ego;
     if (this.simTime >= this.scenario.durationS - 1e-9) this.finish('duration');
     else if (ego.s >= this.road.lengthFt) this.finish('end_of_road');
@@ -208,10 +288,7 @@ export class Engine {
     reqs: string[],
     data?: unknown,
   ): void {
-    const entry: LogEntry = { t: this.simTime, type, source, message, reqs };
-    if (data !== undefined) entry.data = data;
-    this.eventLog.logEvent(entry);
-    reqs.forEach((r) => this.trace.add(r));
+    this.hfds.log(this.simTime, type, source, message, reqs, data);
   }
 
   private applyTimelineEvent(e: TimedEvent, t: number): void {
@@ -220,91 +297,213 @@ export class Engine {
       return;
     }
     if (e.kind === 'driver') {
-      this.driver.apply({ kind: e.action, ...(e.args ?? {}) } as DriverAction, t);
+      this.applyDriverAction({ kind: e.action, ...(e.args ?? {}) } as DriverAction, t);
       return;
     }
-    this.applyInject(e.action, (e.args ?? {}) as Record<string, unknown>);
+    this.applyInject(e.action, (e.args ?? {}) as Record<string, unknown>, t);
   }
 
-  /** Director injections (doc 14). World-level ones act now; HFDS ones arrive M2–M5. */
-  private applyInject(kind: DirectorAction['kind'], args: Record<string, unknown>): void {
+  private applyDriverAction(action: DriverAction, t: number): void {
+    this.driver.apply(action, t);
+    const sm = this.hfds.speedManagement;
+    if (action.kind === 'setSpeed') sm.requestSetSpeed(action.mph); // IR27 cap
+    if (action.kind === 'setGap') sm.setGap(action.gapSetting); // A-08
+  }
+
+  /** Director injections (doc 14). HFDS-reaction injections not listed here arrive M4–M6. */
+  private applyInject(
+    kind: DirectorAction['kind'],
+    args: Record<string, unknown>,
+    t: number,
+  ): void {
+    const hfds = this.hfds;
+    const info = (message: string, reqs: string[]) =>
+      this.log(LogEntryType.info, 'Director', message, reqs);
     switch (kind) {
       case 'setEnvironment':
         this.environment.apply(args as Partial<Environment>);
-        this.log(LogEntryType.info, 'Director', `Environment changed: ${JSON.stringify(args)}`, []);
+        info(`Environment changed: ${JSON.stringify(args)}`, ['R13']);
         return;
       case 'spawnHazard': {
-        const a = args as {
-          type: Parameters<HazardField['spawn']>[0];
-          laneId: number;
-          aheadFt: number;
-        };
+        const a = args as { type: HazardType; laneId: number; aheadFt: number };
         const h = this.hazards.spawn(a.type, a.laneId, this.vehicleControl.ego.s + a.aheadFt);
-        this.log(
-          LogEntryType.info,
-          'Director',
-          `${h.type} spawned in lane ${h.laneId} at s = ${h.s.toFixed(0)} ft`,
-          [],
-        );
+        info(`${h.type} spawned in lane ${h.laneId} at s = ${h.s.toFixed(0)} ft`, []);
         return;
       }
       case 'trafficHardBrake': {
         const a = args as { vehicleId: number; decelFtps2: number; durationS: number };
         const v = this.traffic.byId(a.vehicleId);
-        if (v) {
-          v.brakeHard(a.decelFtps2, a.durationS);
-          this.log(
-            LogEntryType.info,
-            'Director',
-            `Vehicle ${v.vehicleId} brakes hard at ${a.decelFtps2} ft/s²`,
-            [],
-          );
-        } else {
-          this.log(
-            LogEntryType.info,
-            'Director',
-            `trafficHardBrake: no vehicle ${a.vehicleId}`,
-            [],
-          );
-        }
-        return;
+        if (!v) return info(`trafficHardBrake: no vehicle ${a.vehicleId}`, []);
+        v.brakeHard(a.decelFtps2, a.durationS);
+        return info(`Vehicle ${v.vehicleId} brakes hard at ${a.decelFtps2} ft/s²`, ['IR8.1']);
+      }
+      case 'trafficErraticAccel': {
+        const a = args as { vehicleId: number };
+        const v = this.traffic.byId(a.vehicleId);
+        if (!v) return info(`trafficErraticAccel: no vehicle ${a.vehicleId}`, []);
+        v.erraticAccel();
+        return info(`Vehicle ${v.vehicleId} accelerates erratically`, ['IR8.2']);
+      }
+      case 'trafficTailgateGap': {
+        const a = args as { vehicleId: number; headwayS: number };
+        const v = this.traffic.byId(a.vehicleId);
+        if (!v) return info(`trafficTailgateGap: no vehicle ${a.vehicleId}`, []);
+        const ego = this.vehicleControl.ego;
+        v.placeAhead(ego.s, this.road.laneIdAt(ego.y), a.headwayS, ego.speed);
+        return info(`Vehicle ${v.vehicleId} now ${a.headwayS} s ahead in the ego lane`, ['IR8.3']);
       }
       case 'setEgoLane': {
-        const a = args as { laneId?: number };
+        const a = args as { laneId?: number; laneType?: 'ExitLane' | 'ServiceDrive' };
         if (a.laneId !== undefined) {
           this.vehicleControl.placeInLane(this.road.laneCenterY(a.laneId));
-          this.log(LogEntryType.info, 'Director', `Ego moved to lane ${a.laneId}`, []);
-          return;
+          hfds.egoLaneTypeOverride = null;
+          return info(`Ego moved to lane ${a.laneId}`, ['IR5.3']);
         }
-        break;
+        if (a.laneType) {
+          hfds.egoLaneTypeOverride = LaneType[a.laneType];
+          return info(`Ego now in a ${a.laneType} (until moved to a lane)`, ['IR5.3']);
+        }
+        return;
       }
       case 'setRoadFlags':
         this.road.flags = { ...this.road.flags, ...args };
-        this.log(LogEntryType.info, 'Director', `Road flags: ${JSON.stringify(args)}`, []);
-        return;
+        return info(`Road flags: ${JSON.stringify(args)}`, ['IR5.2', 'IR1']);
+      case 'failSensor': {
+        const a = args as { sensorId: SensorId; status: SensorStatus };
+        hfds.sensors.setStatus(a.sensorId, a.status);
+        return info(`Sensor ${a.sensorId} → ${a.status}`, ['R9', 'IR5.6']);
+      }
+      case 'clearAllFaults':
+      case 'clearFault':
+        // M2: every injected fault clears; per-code clearing and R38 buffers are M5.
+        hfds.sensors.clearAll();
+        this.map.dataError = false;
+        hfds.functions.clearFaults();
+        return info('Injected faults cleared', ['R38']);
+      case 'applyMapUpdate': {
+        const a = args as { version: string; lastUpdated: string };
+        this.map.applyUpdate(a);
+        return info(`LiDAR map update ${a.version} (${a.lastUpdated}) downloaded`, ['R11']);
+      }
+      case 'staleGpsCorrection': {
+        const a = args as { ageS: number };
+        hfds.sensors.stopGpsCorrection(t, a.ageS);
+        return info(`GPS correction downloads stopped (age ${a.ageS} s)`, ['R11', 'IR5.8']);
+      }
+      case 'dropLaneMarkings': {
+        const a = args as { durationS: number };
+        this.road.dropMarkings(t, a.durationS);
+        return info(`Lane lines undetectable for ${a.durationS} s`, ['IR2']);
+      }
+      case 'mapError':
+        this.map.dataError = true;
+        return info('LiDAR map data error', ['IR5.7']);
+      case 'gpsError':
+        hfds.sensors.gpsDataError = true;
+        return info('Navigation / GPS data error', ['IR5.7']);
+      case 'setTrailer': {
+        const a = args as { attached: boolean; capable?: boolean };
+        hfds.functions.trailerAttached = a.attached;
+        if (a.capable !== undefined) hfds.functions.trailerCapable = a.capable;
+        return info(`Trailer ${a.attached ? 'attached' : 'detached'}`, ['IR5.5']);
+      }
+      case 'setSubsystemFlag': {
+        const a = args as { name: SubsystemFlag; ok: boolean };
+        hfds.functions.setFlag(a.name, a.ok);
+        return info(`${a.name} ${a.ok ? 'available' : 'unavailable'}`, [
+          a.name === 'positioningDataService' ? 'IR17' : 'IR5.9',
+        ]);
+      }
+      case 'fcwEscalation':
+        hfds.functions.fcwEscalated = true;
+        return info('Forward collision warning escalated to a takeover request', ['IR5.10']);
       default:
-        break;
+        return info(
+          `Injection "${kind}" received; its HFDS effect is not simulated yet (M4–M6)`,
+          [],
+        );
     }
-    this.log(
-      LogEntryType.info,
-      'Director',
-      `Injection "${kind}" received; its HFDS effect is not simulated yet (M2–M5)`,
-      [],
-    );
   }
 
   // -------------------------------------------------------------------------
   // Outputs
   // -------------------------------------------------------------------------
 
+  private hazardAheadFt(): number | null {
+    const ego = this.vehicleControl.ego;
+    const lane = this.road.laneIdAt(ego.y);
+    let best: number | null = null;
+    for (const h of this.hazards.all) {
+      const d = h.s - ego.s;
+      if (h.laneId === lane && d >= 0 && (best === null || d < best)) best = d;
+    }
+    return best;
+  }
+
+  /** Per-tick view for the expectation runner (doc 14). */
+  observe(): Observation {
+    const hfds = this.hfds;
+    const ego = this.vehicleControl.ego;
+    const road = this.road;
+    const sm = hfds.speedManagement;
+    const das = hfds.driverAssist;
+    const lead = das.leadVehicle;
+    const lane = road.laneIdAt(ego.y);
+    const egoDims = VEHICLE_DIMENSIONS_FT[EGO_SIZE_CLASS];
+    const offset = Math.abs(ego.y - road.laneCenterY(lane));
+    const hmi = hfds.hmi.current;
+    return {
+      t: this.simTime,
+      tick: this.tickCount,
+      mode: hfds.mode,
+      available: hfds.available,
+      lightBar: hmi.lightBarStatus,
+      hmi,
+      setSpeedMph: sm.setSpeed,
+      speedMph: ego.speed / MPH_TO_FTPS,
+      speedFtps: ego.speed,
+      accActive: sm.active,
+      leadId: lead?.vehicleId ?? null,
+      leadSizeClass: lead?.sizeClass ?? null,
+      zone: sm.currentZone,
+      gapFt: das.leadGap,
+      trailDistanceFt: sm.computeTrailDistance(ego.speed, lead?.sizeClass ?? null),
+      safetyCushionFt: sm.safetyCushion(ego.speed, lead?.sizeClass ?? null),
+      timeGapS: sm.timeGap(),
+      sizeFactor: lead ? SIZE_FACTOR[lead.sizeClass] : 1,
+      laneId: lane,
+      egoS: ego.s,
+      inLane: offset + egoDims.width / 2 <= road.laneWidthFt / 2 + 1e-9,
+      targetOffset: hfds.pathPrediction.targetOffset,
+      besideVehicleIds: this.traffic.vehicles
+        .filter(
+          (v) =>
+            Math.abs(v.laneId - lane) === 1 &&
+            v.s > ego.s - egoDims.length - v.length &&
+            v.s - v.length < ego.s,
+        )
+        .map((v) => v.vehicleId),
+      hfdsAccelCmd: 0,
+      warnings: hmi.activeWarnings
+        .filter((w) => w.isActive)
+        .map((w) => ({ cls: w.warningClass, reason: w.reason })),
+      hazardAheadFt: this.hazardAheadFt(),
+    };
+  }
+
   snapshot(meta: { paused: boolean; timeScale: TimeScale }): Snapshot {
+    const hfds = this.hfds;
     const ego = this.vehicleControl.ego;
     const road = this.road;
     const laneId = road.laneIdAt(ego.y);
     const fromS = ego.s - SNAPSHOT_WINDOW_BEHIND_FT;
     const toS = ego.s + SNAPSHOT_WINDOW_AHEAD_FT;
-    const cfg = this.scenario.vehicleConfig;
     const d = this.driver;
+    const sm = hfds.speedManagement;
+    const das = hfds.driverAssist;
+    const lead = das.leadVehicle;
+    const leadSensor = hfds.leadSensor();
+    const pos = hfds.vehiclePosition;
     return {
       tick: this.tickCount,
       simTime: this.simTime,
@@ -331,7 +530,7 @@ export class Engine {
           speedMph: v.speed / MPH_TO_FTPS,
           length: v.length,
           width: v.width,
-          isLead: false,
+          isLead: lead?.vehicleId === v.vehicleId,
           isIntruding: false,
         })),
       hazards: this.hazards.all
@@ -344,38 +543,41 @@ export class Engine {
         rightShoulder: road.rightShoulder,
       },
       hfds: {
-        mode: HfdsMode.UNAVAILABLE,
-        available: false,
-        availabilityChecks: [],
-        bluePath: [],
-        targetOffset: 0,
+        mode: hfds.mode,
+        available: hfds.available,
+        availabilityChecks: hfds.availabilityChecks.map((c) => ({ ...c, reqs: [...c.reqs] })),
+        bluePath: hfds.pathPrediction.bluePath.map((p) => ({ ...p })),
+        targetOffset: hfds.pathPrediction.targetOffset,
         lateralOffset: ego.y - road.laneCenterY(laneId),
-        pathConfidence: 0,
+        pathConfidence: hfds.pathPrediction.pathConfidence,
         acc: {
-          active: false,
-          setSpeedMph: d.requestedSetSpeedMph,
-          timeGapS: GAP_SETTINGS_S[d.selectedGap],
-          trailDistanceFt: 0,
-          selectionDistanceFt: 0,
-          safetyCushionFt: 0,
-          zone: null,
-          gapFt: null,
-          closingSpeedFtps: 0,
+          active: sm.active,
+          setSpeedMph: sm.setSpeed,
+          timeGapS: sm.timeGap(),
+          trailDistanceFt: sm.computeTrailDistance(ego.speed, lead?.sizeClass ?? null),
+          selectionDistanceFt: sm.selectionDistance(ego.speed, lead?.sizeClass ?? null),
+          safetyCushionFt: sm.safetyCushion(ego.speed, lead?.sizeClass ?? null),
+          zone: sm.currentZone,
+          gapFt: das.leadGap,
+          closingSpeedFtps: sm.closingSpeed,
           aReqFtps2: null,
-          maxBrakingDecelFtps2: cfg.maxBrakingDecelFtps2,
+          maxBrakingDecelFtps2: sm.maxBrakingDecel,
         },
         timers: {},
-        reclaimsInWindow: 0,
-        sensors: enumValues(SensorId).map((id) => ({
-          sensorId: id,
-          type: SENSOR_TYPES[id],
-          status: this.scenario.sensorOverrides[id] ?? SensorStatus.OK,
-          activeForLane: false,
-          activeForLead: false,
+        reclaimsInWindow: hfds.reclaimHistory.length,
+        sensors: [...hfds.sensors.sensors.values()].map((s) => ({
+          sensorId: s.sensorId,
+          type: s.type,
+          status: s.status,
+          activeForLane:
+            (s.sensorId === SensorId.CAM_FRONT && pos.sources.camera !== null) ||
+            ((s.sensorId === SensorId.LIDAR_1 || s.sensorId === SensorId.GPS_1) &&
+              pos.sources.map !== null),
+          activeForLead: s.sensorId === leadSensor,
         })),
         errors: [],
       },
-      hmi: initialHmiState(),
+      hmi: hfds.hmi.current,
       driver: {
         eyesOnRoad: d.eyesOnRoad,
         grip: { ...d.gripAreas },
@@ -385,7 +587,7 @@ export class Engine {
         attentionLevel: d.attentionLevel,
       },
       environment: this.environment.value,
-      traceReqs: [...this.trace].sort(),
+      traceReqs: [...hfds.trace].sort(),
     };
   }
 
@@ -393,6 +595,7 @@ export class Engine {
   stateHash(): string {
     const ego = this.vehicleControl.ego;
     const d = this.driver;
+    const hfds = this.hfds;
     return hashString(
       canonicalJson({
         tick: this.tickCount,
@@ -410,6 +613,18 @@ export class Engine {
           d.selectedGap,
         ],
         environment: this.environment.value,
+        map: [this.map.version, this.map.lastUpdated, this.map.dataError],
+        hfds: [
+          hfds.mode,
+          hfds.available,
+          hfds.availabilityChecks.map((c) => c.pass),
+          hfds.speedManagement.setSpeed,
+          hfds.speedManagement.active,
+          hfds.lastButtonPressAt,
+          hfds.pendingStopRequest,
+          [...hfds.sensors.sensors.values()].map((s) => s.status),
+        ],
+        hmi: hfds.hmi.current,
         log: this.eventLog.entries.map((e) => [e.t, e.type, e.message]),
         finished: this.finishedReason,
       }),
@@ -422,7 +637,7 @@ export class Engine {
 }
 
 /**
- * Headless run used by tests (and later the in-page checker): replays `inputLog` at its
+ * Headless run used by tests and the expectation runner: replays `inputLog` at its
  * recorded ticks and steps up to `ticks` times or until the run finishes.
  */
 export function runScenario(

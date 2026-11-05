@@ -107,6 +107,10 @@ export const HMI_TEXT = {
   HFDS_AVAILABLE: 'HFDS available',
   /** IR16. */
   UPDATE_NEEDED: 'Update needed',
+  /** R40 banner when control passes to the driver (doc 10 R40 prototype note). */
+  CONTROL_TO_DRIVER: 'You are in control',
+  /** R40 banner when HFDS takes over steering (doc 10 R40 prototype note). */
+  CONTROL_TO_HFDS: 'HFDS steering',
 } as const;
 
 // ===========================================================================
@@ -218,6 +222,22 @@ export const DRIVER_MAX_LATERAL_SPEED_FTPS = 4.0;
 export const MAX_STEERING_ANGLE_DEG = 15;
 /** A-37: the ego's front bumper starts at s = 0 on the road (hazards and segments use absolute s). */
 export const EGO_START_S_FT = 0;
+/** A-44: R16 / R49 rejection messages (dashboard, HUD, activation warning) stay this long (s). */
+export const REJECTION_DISPLAY_S = 5;
+/** A-44: R16.3 light-bar error flash after a rejected press (s). */
+export const LIGHT_BAR_ERROR_FLASH_S = 2;
+/** A-44: R40 control-transfer banner duration (s). */
+export const CONTROL_TRANSFER_BANNER_S = 5;
+/** A-47: blue path length ahead of the ego (ft); equals the default forward sensor range (A-04). */
+export const BLUE_PATH_LENGTH_FT = 800;
+/** A-47: spacing of blue-path points (ft). */
+export const BLUE_PATH_POINT_SPACING_FT = 25;
+/** A-47: pathConfidence multiplier when a lane line is not visible (IR2). */
+export const PATH_CONFIDENCE_NO_MARKINGS_FACTOR = 0.4;
+/** A-48: Director `trafficErraticAccel`: +a then −a pulses of this size (ft/s²) ... */
+export const ERRATIC_ACCEL_PULSE_FTPS2 = 6;
+/** A-48: ... each lasting this long (s), i.e. a 12 ft/s² change within 1 s (IR8.2). */
+export const ERRATIC_ACCEL_PULSE_S = 0.5;
 /** A-39: EventLog.capacity; beyond it the oldest entries are dropped (EventLog.count keeps the total). */
 export const EVENT_LOG_CAPACITY = 10_000;
 
