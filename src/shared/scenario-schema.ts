@@ -157,17 +157,31 @@ const hazard = z.strictObject({
 // Timeline events (doc 14 "Timeline events")
 // ---------------------------------------------------------------------------
 
-const ev = <K extends 'driver' | 'inject', A extends string, S extends z.ZodType | undefined>(
+const noArgs = z.strictObject({}).optional();
+
+/** One timeline event schema; actions without arguments accept an absent or empty `args`. */
+function ev<K extends 'driver' | 'inject', A extends string>(
   kind: K,
   action: A,
-  args?: S,
-) =>
-  z.strictObject({
+): z.ZodObject<{
+  t: typeof nonNeg;
+  kind: z.ZodLiteral<K>;
+  action: z.ZodLiteral<A>;
+  args: typeof noArgs;
+}>;
+function ev<K extends 'driver' | 'inject', A extends string, S extends z.ZodType>(
+  kind: K,
+  action: A,
+  args: S,
+): z.ZodObject<{ t: typeof nonNeg; kind: z.ZodLiteral<K>; action: z.ZodLiteral<A>; args: S }>;
+function ev(kind: string, action: string, args?: z.ZodType) {
+  return z.strictObject({
     t: nonNeg,
     kind: z.literal(kind),
     action: z.literal(action),
-    ...(args ? { args } : { args: z.strictObject({}).optional() }),
+    args: args ?? noArgs,
   });
+}
 
 const driverEvents = [
   ev('driver', 'pressHfdsButton'), // IR7, R12

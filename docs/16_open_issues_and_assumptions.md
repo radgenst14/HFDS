@@ -93,6 +93,11 @@ Three lists:
 | A-33 | Scripted traffic `setSpeed` changes speed at 5 ft/s² unless the preset gives a rate (doc 14 schema default) | 5.0 ft/s² | scenarios |
 | A-34 | Time scale 0.5× runs one fixed step every other real tick (A-11 only covers "extra" steps). Keys `1–4` (doc 15 B6) map to 0.5×, 1×, 2×, 4× | — | protocol, UI |
 | A-35 | `src/engine/worker.ts` is the Worker host: the only engine file allowed real-time timers and `fetch` (it drives the pure `engine.step()` and loads presets). All other engine/shared files stay timer-, DOM- and wall-clock-free (lint-enforced) | — | CLAUDE.md rule 4, doc 15 B5 |
+| A-36 | Manual-driving kinematics: point mass in the road frame (curves do not move the car; they only feed UC9 checks and are drawn as a tinted straight segment). Throttle 1.0 = 6 ft/s²; brake without a rate = 10 ft/s²; full steer (\|1\|) = 4 ft/s sideways, + = left; display wheel angle = steer × 15°; the ego is clamped to the paved road (shoulder edge to median). Keyboard ←/→ sends steer ±0.5 | 6 / 10 ft/s², 4 ft/s, 15°, 0.5 | IR25, A-26, R1 |
+| A-37 | The ego's front bumper starts at s = 0 (hazards and segments use absolute s; traffic `sFt` is relative to it). A run ends at `durationS` or when the ego reaches the end of the road; the host then pauses | s = 0 | doc 14 |
+| A-38 | Road frame: lane L's centre is at y = (L − 1) × laneWidth (y + = left); the right shoulder is as wide as a travel lane | — | A-28 |
+| A-39 | `EventLog.capacity` = 10 000 entries; beyond it the oldest are dropped and `EventLog.count` keeps the total (R45 runs here are far shorter) | 10 000 | R45 |
+| A-40 | Until DATS exists (M4), `Driver.attentionLevel` mirrors gaze (eyes on road ⇒ Engaged, off ⇒ Inattentive). Director injections with no M1 effect are logged as "not simulated yet" | — | R27, doc 14 |
 
 ---
 
