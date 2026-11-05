@@ -109,8 +109,8 @@ The SRS names Closing, Coast and Safety zones but never gives their boundaries. 
 | Zone | Condition | Longitudinal behavior |
 |---|---|---|
 | (no lead) | no in-lane vehicle within selectionDist | `resumeSetSpeed()`: accelerate ≤ `ACC_MAX_ACCEL` toward `min(setSpeed, 85 mph)` (R24, IR27) |
-| Closing | `trailDistance < gap ≤ selectionDist` | `holdSpeed()` — keep current speed (R5). *A-05b:* if `v < setSpeed` and the lead is faster, hold — do not accelerate (literal R5) |
-| Coast | `safetyCushion < gap ≤ trailDistance` | `coastToMatchLead()`: zero throttle (−`COAST_DECEL`) while `v > v_lead`; once matched (±0.5 mph), track lead speed and hold gap ≈ trailDistance with a gentle P-controller, never exceeding setSpeed (R21, IR9) |
+| Closing | `gap > coastStart` (and ≤ selectionDist) | `holdSpeed()` — keep current speed (R5). *A-05b:* if `v < setSpeed` and the lead is faster, hold — do not accelerate (literal R5) |
+| Coast | `safetyCushion < gap ≤ coastStart`, where `coastStart = max(trail(v), trail(v_lead) + closing² / (2·COAST_DECEL))`; stays Coast until speeds match | `coastToMatchLead()`: zero throttle (−`COAST_DECEL`) while `v > v_lead`; once matched (±0.5 mph), track lead speed and hold gap ≈ trailDistance with a gentle P-controller (A-51), never exceeding setSpeed (R21, IR9). **Revised in M3 (A-05, ISSUE-40)** so coasting ends at the trail distance |
 | Safety | `gap ≤ safetyCushion` | a_req = ∞ → Class A (R22.3, R23) |
 
 **R22 runs every tick in every zone**: if the coast deceleration cannot remove the closing speed before the cushion (`a_req > COAST_DECEL`), brake at `a_req` when `a_req ≤ maxBrakingDecel`, else Class A reclaim. This matches SD3 (brake path) and UC14.

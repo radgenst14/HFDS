@@ -418,6 +418,8 @@ export interface HmiState {
   doorsUnlocked: boolean;
   /** IR22. */
   fcsMode: FcsMode;
+  /** A-25: Forward Collision System alert / automatic braking active. */
+  forwardCollisionAlert: boolean;
   /** IR16 "Update needed". */
   updateNeeded: boolean;
 }
@@ -441,6 +443,7 @@ export const HMI_FIELDS = [
   'onStar',
   'doorsUnlocked',
   'fcsMode',
+  'forwardCollisionAlert',
   'updateNeeded',
 ] as const satisfies readonly (keyof HmiState)[];
 export type HmiField = (typeof HMI_FIELDS)[number];

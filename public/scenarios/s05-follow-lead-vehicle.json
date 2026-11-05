@@ -25,9 +25,9 @@
       "2 s: engage at 70 mph (set speed 70).",
       "Car at 55 mph enters the selection distance → becomes lead (R4).",
       "Closing zone: hold 70 (R5). Coast zone: coast down to 55 (R21).",
-      "Following at ≈ 161 ft (2.0 s × 80.7 ft/s, IR9).",
+      "Following at ≈ 161 ft (2.0 s × 80.7 ft/s, IR9): coasting starts early enough to end at the trail distance (A-05).",
       "55 s: the car changes to lane 1 → resume 70 mph (R24).",
-      "62 s: a 58 mph truck moves into lane 2 ahead → new lead, trail distance × 1.25 (R25)."
+      "70 s: a 58 mph truck moves into lane 2 ahead → new lead, trail distance × 1.25 (R25)."
     ],
     "watchFor": [
       "Colored zone bands ahead of the car (Closing / Coast / Safety).",
@@ -64,7 +64,7 @@
   "environment": {
     "weather": "Clear",
     "lightCondition": "Day",
-    "roadMoisture": 0.0,
+    "roadMoisture": 0,
     "visibilityM": 1000
   },
   "ego": {
@@ -107,7 +107,7 @@
       "speedMph": 58,
       "behavior": [
         {
-          "t": 62,
+          "t": 70,
           "action": "changeLane",
           "toLaneId": 2,
           "durationS": 3
@@ -118,12 +118,12 @@
   "hazards": [],
   "timeline": [
     {
-      "t": 2.0,
+      "t": 2,
       "kind": "driver",
       "action": "pressHfdsButton"
     },
     {
-      "t": 4.0,
+      "t": 4,
       "kind": "driver",
       "action": "setGrip",
       "args": {
@@ -162,9 +162,10 @@
     {
       "check": "speedMph",
       "reqs": ["R24", "IR27"],
-      "by": 70,
       "approx": 70,
-      "tol": 1.5
+      "tol": 1.5,
+      "from": 66,
+      "to": 70
     },
     {
       "check": "lead",

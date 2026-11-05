@@ -44,6 +44,7 @@ import { HFDS, type Anchors } from './hfds/hfds';
 import type { EventLog } from './hfds/event-log';
 import type { VehicleControl } from './hfds/vehicle-control';
 import { Rng } from './rng';
+import { ReactiveDriverScript } from './scenario/reactive';
 import { TimelineRunner, type TimedEvent } from './scenario/timeline';
 import { Driver } from './world/driver';
 import { EnvironmentState } from './world/environment';
@@ -132,6 +133,7 @@ export class Engine {
   readonly map: LiDARMap;
   readonly hfds: HFDS;
   private readonly timeline: TimelineRunner;
+  private readonly reactive: ReactiveDriverScript;
 
   private tickCount = 0;
   private queue: InputLogEntry[] = [];
@@ -154,6 +156,7 @@ export class Engine {
         environment: this.environment,
         traffic: this.traffic,
         driver: this.driver,
+        hazards: this.hazards,
         map: this.map,
       },
       {
@@ -163,6 +166,8 @@ export class Engine {
       },
     );
     this.timeline = new TimelineRunner(scenario.timeline);
+    this.reactive = new ReactiveDriverScript(this.timeline.reactive);
+    this.hfds.onTakeoverRequest.push((at) => this.reactive.onTakeoverRequest(at));
     this.log(
       LogEntryType.info,
       'Engine',
@@ -237,6 +242,7 @@ export class Engine {
     }
     this.queue = [];
     for (const e of this.timeline.due(t)) this.applyTimelineEvent(e, t);
+    this.reactive.apply(t, this.driver, this.vehicleControl.ego, this.road); // doc 14 takeoverOnClassA
 
     // 2. World: scripted traffic; hazards are static; environment changes by injection.
     this.traffic.advance(DT_S, t);
@@ -248,8 +254,9 @@ export class Engine {
     // 7. HFDS mode machine: availability, button, transitions.
     hfds.updateMode(t);
 
-    // 8. VehicleControl arbitrates driver input (IR25); HFDS commands from M3 (A-26).
-    const cmd = this.vehicleControl.arbitrate(this.driver);
+    // 8. HFDS ControlCommands (R1) and the FCS (A-25); VehicleControl arbitrates (IR25).
+    const fcsDecel = hfds.commands(t); // R1 commands; A-25 FCS
+    const cmd = this.vehicleControl.arbitrate(this.driver, fcsDecel);
 
     // 9. Integrate ego kinematics with the fixed dt.
     this.vehicleControl.integrate(cmd, DT_S, this.road);
@@ -483,7 +490,7 @@ export class Engine {
             v.s - v.length < ego.s,
         )
         .map((v) => v.vehicleId),
-      hfdsAccelCmd: 0,
+      hfdsAccelCmd: this.vehicleControl.appliedHfdsAccel,
       warnings: hmi.activeWarnings
         .filter((w) => w.isActive)
         .map((w) => ({ cls: w.warningClass, reason: w.reason })),
@@ -531,7 +538,7 @@ export class Engine {
           length: v.length,
           width: v.width,
           isLead: lead?.vehicleId === v.vehicleId,
-          isIntruding: false,
+          isIntruding: das.tracks.get(v.vehicleId)?.isIntruding ?? false,
         })),
       hazards: this.hazards.all
         .filter((h) => h.s > fromS && h.s < toS)
@@ -557,13 +564,17 @@ export class Engine {
           trailDistanceFt: sm.computeTrailDistance(ego.speed, lead?.sizeClass ?? null),
           selectionDistanceFt: sm.selectionDistance(ego.speed, lead?.sizeClass ?? null),
           safetyCushionFt: sm.safetyCushion(ego.speed, lead?.sizeClass ?? null),
+          coastStartFt: (() => {
+            const info = das.leadInfo();
+            return info ? sm.coastStartDistance(ego.speed, info) : null;
+          })(),
           zone: sm.currentZone,
           gapFt: das.leadGap,
           closingSpeedFtps: sm.closingSpeed,
-          aReqFtps2: null,
+          aReqFtps2: sm.aReq,
           maxBrakingDecelFtps2: sm.maxBrakingDecel,
         },
-        timers: {},
+        timers: hfds.timers(this.simTime),
         reclaimsInWindow: hfds.reclaimHistory.length,
         sensors: [...hfds.sensors.sensors.values()].map((s) => ({
           sensorId: s.sensorId,

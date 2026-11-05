@@ -1,9 +1,10 @@
 /**
  * Instrument cluster (doc 15 B6 region 3; R46): light bar, cluster message, HFDS state
- * badge (R46.1), "HFDS available" indicator (IR6), speed / set speed / gap, active
+ * badge (R46.1), "HFDS available" indicator (IR6), speed / set speed / gap, ACC readouts
+ * (lead, gap, trail distance, zone, a_req vs maxBrakingDecel), takeover countdown, active
  * warnings (R46.2), HUD line (R16.2), dashboard error (R16.1), "Update needed" (IR16),
- * indicator row (FCS mode IR22, hazards, OnStar, doors, alert channels) and the
- * control-transfer banner (R40). Renders engine state only.
+ * indicator row (FCS mode IR22 and alert A-25, hazards, OnStar, doors, alert channels)
+ * and the control-transfer banner (R40). Renders engine state only.
  */
 import { HMI_TEXT } from '../../shared/constants';
 import type { Snapshot } from '../../shared/protocol';
@@ -43,6 +44,9 @@ function readout(label: string, testid: string): { root: HTMLElement; value: HTM
   return { root, value };
 }
 
+const ft = (x: number | null | undefined) =>
+  x === null || x === undefined ? '—' : `${x.toFixed(0)} ft`;
+
 export function initCluster(host: HTMLElement): Cluster {
   const lightBarHost = el('div', 'light-bar-row');
   const lightBar = initLightBar(lightBarHost);
@@ -52,8 +56,11 @@ export function initCluster(host: HTMLElement): Cluster {
   const available = el('span', 'indicator available-indicator', 'available-indicator');
   const update = el('span', 'indicator update-needed', 'update-needed');
   update.textContent = HMI_TEXT.UPDATE_NEEDED;
+  const fcsAlert = el('span', 'indicator fcs-alert', 'fcs-alert');
+  fcsAlert.textContent = 'Forward collision alert — braking';
+  const countdown = el('span', 'indicator countdown', 'takeover-countdown');
   const statusRow = el('div', 'status-row');
-  statusRow.append(badge, mode, available, update);
+  statusRow.append(badge, mode, available, update, countdown, fcsAlert);
 
   const message = el('p', 'cluster-message', 'cluster-message');
   message.setAttribute('aria-live', 'assertive');
@@ -71,6 +78,15 @@ export function initCluster(host: HTMLElement): Cluster {
   const readouts = el('div', 'readouts');
   readouts.append(speed.root, setSpeed.root, gap.root, acc.root, lane.root, time.root, tick.root);
 
+  const lead = readout('Lead', 'acc-lead');
+  const leadGap = readout('Lead gap', 'acc-gap');
+  const trail = readout('Trail', 'acc-trail');
+  const zone = readout('Zone', 'acc-zone');
+  const aReq = readout('a_req / max', 'acc-areq');
+  const offset = readout('Lane offset', 'lane-offset');
+  const accRow = el('div', 'readouts acc-row');
+  accRow.append(lead.root, leadGap.root, trail.root, zone.root, aReq.root, offset.root);
+
   const indicators = el('div', 'indicators', 'indicators');
   const warnings = el('p', 'warnings', 'active-warnings');
   const status = el('p', 'cluster-note', 'run-status');
@@ -83,6 +99,7 @@ export function initCluster(host: HTMLElement): Cluster {
     dashboardError,
     hud,
     readouts,
+    accRow,
     indicators,
     warnings,
     status,
@@ -106,6 +123,15 @@ export function initCluster(host: HTMLElement): Cluster {
       available.classList.toggle('on', hmi.availableIndicator);
       available.title = 'IR6: lit only when every operating constraint is met';
       update.hidden = !hmi.updateNeeded;
+      fcsAlert.hidden = !hmi.forwardCollisionAlert;
+      const timers = s.hfds.timers;
+      const cd =
+        timers.takeoverRemainingS !== undefined
+          ? `Take over within ${timers.takeoverRemainingS.toFixed(1)} s (SR7)`
+          : timers.cooldownRemainingS !== undefined
+            ? `Re-check in ${timers.cooldownRemainingS.toFixed(1)} s (R38.4)`
+            : undefined;
+      show(countdown, cd);
       show(message, hmi.displayedMessage);
       show(banner, hmi.controlTransferBanner);
       show(dashboardError, hmi.dashboardError ? `Dashboard: ${hmi.dashboardError}` : undefined);
@@ -119,6 +145,20 @@ export function initCluster(host: HTMLElement): Cluster {
       lane.value.textContent = s.ego.laneId === 0 ? 'shoulder' : String(s.ego.laneId);
       time.value.textContent = `${s.simTime.toFixed(2)} s`;
       tick.value.textContent = String(s.tick);
+
+      const leadCar = s.traffic.find((v) => v.isLead);
+      lead.value.textContent = leadCar ? `#${leadCar.id} ${leadCar.sizeClass}` : 'none';
+      leadGap.value.textContent = ft(a.gapFt);
+      trail.value.textContent = ft(a.trailDistanceFt);
+      zone.value.textContent = a.zone ?? '—';
+      zone.value.dataset.zone = a.zone ?? '';
+      const req = a.aReqFtps2;
+      aReq.value.textContent =
+        req === null
+          ? `— / ${a.maxBrakingDecelFtps2}`
+          : `${Number.isFinite(req) ? req.toFixed(1) : '∞'} / ${a.maxBrakingDecelFtps2} ft/s²`;
+      aReq.value.classList.toggle('over', req !== null && req > a.maxBrakingDecelFtps2);
+      offset.value.textContent = `${s.hfds.lateralOffset >= 0 ? '+' : ''}${s.hfds.lateralOffset.toFixed(2)} ft (target ${s.hfds.targetOffset.toFixed(1)})`;
 
       const ind = [
         `FCS: ${hmi.fcsMode === 'AlertAndBrake' ? 'Alert and Brake' : 'default'}`,

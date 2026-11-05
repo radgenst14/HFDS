@@ -52,6 +52,9 @@ Three lists:
 | ISSUE-37 | Kit: presets vs doc 14 "Expectations" | Two forms used by the drafts are not in the doc 14 vocabulary: (a) setup checks with `reqs: []` (s02, s03, s04, s08, s15: "engaged before the event under test"); (b) an anchor as a window bound (s04 `from: 3.2, to: "classA"`); also a bare `after: "mrm"` (s12) where doc 14 shows `"<anchor>+<seconds>"`. | Schema accepts all three: empty `reqs` marks a setup check (runs, traces nothing); `from`/`to` take seconds or an anchor; a bare anchor means +0 s. Presets unchanged. Found in M0. |
 | ISSUE-38 | SD5 vs Warning class | SD5 issues a Warning for the outdated map ("Issue-Warning"), but `Warning.warningClass` is only A (takeover) or B (attention). | Activation warnings (R49, IR16 "Update needed") are HMI messages plus `warning` log entries (R45.3), not Class A/B Warning objects, so `activeWarnings` keeps meaning "Class A/B in force". Found in M2. |
 | ISSUE-39 | Kit: doc 14 expectation timing | Doc 14 gives the trigger names but not their exact semantics (tolerance of `at`, meaning of spatial triggers, `logged` with a window). | Semantics fixed in `src/engine/scenario/expectations.ts`: `at`/`after`/`whenEgoSFt` hold within ±1 tick; `by` at some tick ≤ t; `from`/`to` at every tick; `whenEgoSFtAtLeast`, `whenHazardWithinFt`, `beforeSFt` and no trigger hold at some tick where the condition holds; `logged` applies the same windows to entry times. Found in M2. |
+| ISSUE-40 | R5/R21 zones (A-05) vs IR9 | With the kit's zone boundaries the coast zone starts at the trail distance and must end before the safety cushion, so at closing speeds above about 7 mph the car settles at the cushion (≈ 0.5 s headway, S05 draft: 15 mph closing), below the IR9 trail distance. | A-05 revised: coasting starts at trail(v_lead) + closing² ÷ (2 × coastDecel) so it ends at the trail distance; R22 braking at a_req unchanged. Team to confirm (Q-02). Found in M3. |
+| ISSUE-41 | Kit: doc 17 milestone order | M3's done-criteria (S04, S06 expectations) need the Class A takeover request and confirmation (UC19, R35, R40), which doc 17 lists under M4. | The takeover core (A-53) and the minimal FCS (A-25) are implemented in M3; M4 adds the 30 s period → minimal risk maneuver, Class B escalation, R39 and the remaining Class A causes. Found in M3. |
+| ISSUE-42 | Kit: S05 and S06 draft timing | Hand-computed drafts did not play out as captioned: S05's truck cut in before the car had resumed 70 mph, so the R24 check passed only at t = 0.05 s; S06's second car cut in 29 ft ahead at 25 mph and the ego drove through it. | Tuned scenario data only: S05 truck lane change at 70 s and the R24 check over 66–70 s (stricter); S06 second car starts 325 ft ahead and slows to 35 mph, cutting in ≈ 60 ft ahead (a_req ≈ 16 ft/s² > 11.5 still triggers R23; the FCS avoids contact). Captions updated. Found in M3. |
 
 ---
 
@@ -63,7 +66,7 @@ Three lists:
 | A-02 | Engine units: ft, s, ft/s, ft/s²; mph and m only at boundaries | — | doc 12 |
 | A-03 | Safety cushion = 0.5 s × v × sizeFactor (reproduces 44 ft at 60 mph, car) | 0.5 s | doc 13 §1.2 |
 | A-04 | Forward sensor detection range | 800 ft | R4.2 |
-| A-05 | Zones: Closing = trail < gap ≤ selection; Coast = cushion < gap ≤ trail; Safety = gap ≤ cushion. R22 checked every tick | — | doc 13 §3 |
+| A-05 | **Revised in M3 (ISSUE-40; team to confirm, Q-02).** Zones: Safety = gap ≤ cushion; Coast = gap ≤ max(trail(v), trail(v_lead) + closing² ÷ (2 × coastDecel)), and coasting continues until the speeds match (±0.5 mph); Closing = beyond that, up to the selection distance. Coasting therefore ends at the trail distance instead of the cushion. After matching, a gentle follow controller holds the gap at the trail distance (A-51). R22 still runs every tick: brake at a_req when coasting cannot remove the closing speed before the cushion. Original boundaries (Closing = trail < gap, Coast = cushion < gap ≤ trail) let the car settle at the cushion, which breaks IR9 | — | doc 13 §3, R5, R21, R22, IR9 |
 | A-05b | In the closing zone HFDS holds current speed literally (does not accelerate toward set speed) | — | R5 |
 | A-06 | DATS detects attention loss after continuous eyes-off-road | 3.0 s | R29 |
 | A-07 | Start sequence (self-tests + validation) duration | 1.0 s | R14, R42 |
@@ -74,7 +77,7 @@ Three lists:
 | A-12 | MRM controlled-stop deceleration | 5.0 ft/s² | SR1 |
 | A-13 | Phantom brake | 0.5 s at 4.0 ft/s² | R31.3 |
 | A-14 | Curve too sharp when v²·κ exceeds | 8.0 ft/s² | UC9 |
-| A-15 | Large-vehicle lateral offset (clamped inside lane) | 1.0 ft | UC12 |
+| A-15 | Large-vehicle lateral offset 1.0 ft away from a truck, semi-truck or bus in the adjacent lane while it is within ±1 of its own length of the ego; clamped inside the lane; large vehicles on both sides cancel to 0 | 1.0 ft | UC12 |
 | A-16 | Lane width | 12 ft (3.66 m) | scenarios |
 | A-17 | Driver "steering" if |steer input| ≥ threshold | 0.05 | R39 |
 | A-18 | Vehicle dimensions (L × W ft): Car 15×6, SUV 16×6.5, Truck 20×7, Bus 40×8.5, SemiTruck 70×8.5 | — | R6, R4.3 |
@@ -84,7 +87,7 @@ Three lists:
 | A-22 | Class A supersedes an active Class B alert | — | R28 |
 | A-23 | MRM lane change is safe if no vehicle in the target lane within ±1.5 s of travel or ±60 ft of the ego | — | SR1.1.1 |
 | A-24 | Driver throttle temporarily overrides ACC; HFDS stays engaged | — | IR25 |
-| A-25 | Minimal Forward Collision System: in-lane stationary/slow object with time-to-collision < 2.0 s → automatic braking at maxBrakingDecel, logged | 2.0 s | IR22 |
+| A-25 | Minimal Forward Collision System: when an in-lane object ahead (the lead, including a vehicle entering the lane, or a hazard in the ego lane) has time-to-collision < 2.0 s, it brakes at maxBrakingDecel independent of the HFDS mode, shows "Forward collision alert" and logs it once; it keeps braking until the ego no longer closes on that object. Implemented in M3 (moved from M5). At highway speed a 2.0 s trigger only mitigates a stationary object (ISSUE-21 stays partly open) | 2.0 s | IR22 |
 | A-26 | Manual driving model: with HFDS/ACC off and no pedal input, the ego holds its speed (keeps scenarios readable) | — | engine |
 | A-27 | Sensor set: CAM_FRONT, CAM_REAR, CAM_DRIVER, RADAR_FRONT, LIDAR_1, GPS_1, GRIP_L/R/TOP/BOTTOM | — | doc 12 |
 | A-28 | Lane IDs: 0 = right shoulder, 1 = rightmost travel lane … n = leftmost | — | doc 14 |
@@ -110,6 +113,9 @@ Three lists:
 | A-48 | IR8 tracking: a vehicle is tracked while within the forward sensor range ahead of or behind the ego; IR8.3 uses the current lead's gap history only (a new lead starts a new history). Director `trafficErraticAccel` = +6 ft/s² for 0.5 s then −6 ft/s² for 0.5 s (a 12 ft/s² change within 1 s); `trafficTailgateGap` moves the vehicle into the ego lane `headwayS` × ego speed ahead, at the ego's speed | 6 ft/s², 0.5 s | IR8, doc 14 |
 | A-49 | Director `setEgoLane { laneType: ExitLane \| ServiceDrive }` marks the ego as being in that lane type (IR5.3) until a `setEgoLane { laneId }` | — | IR5.3, doc 14 |
 | A-50 | A forward-collision takeover escalation (Director `fcwEscalation`, IR5.10) stays active until the Director clears faults | — | IR5.10 |
+| A-51 | Controller constants: ACC speed tracking accel = (target − v) ÷ 1.0 s within the A-09 limits; follow mode target speed = lead speed + 0.1 /s × (gap − trail); lane keeping lateral speed = 1.0 /s × lateral error (full steering = 4 ft/s, A-36) | 1.0 s, 0.1 /s, 1.0 /s | R20, R21, R24 |
+| A-52 | UC11 lane intrusion: a vehicle moving sideways towards the ego path counts as entering the lane when its extent will overlap the path within 1.0 s; it can then become the lead (R4) and is highlighted | 1.0 s | UC11, R4 |
+| A-53 | Class A takeover core (pulled into M3, ISSUE-41): a Class A cause in HANDS_FREE → TAKEOVER_REQUESTED with flashing red, "Take steering control immediately." and a chime or seat pulse (ISSUE-16); HFDS holds the lane and coasts (IR13). Takeover is confirmed by a firm grip on ≥ 2 areas (R35), steering ≥ the A-17 threshold, or braking (IR15). Braking while hands-free also counts as a driver takeover (SD8). After either, the engagement checks re-run 20 s later (R38.4). The scenario's reactive `takeoverOnClassA` fires after every takeover request; `steerToLaneId` steers ∝ lateral error (0.5 per ft, capped at full input) until within 0.3 ft of the lane centre | 0.5 /ft, 0.3 ft | UC18, UC19, R35, R38.4, R50 |
 
 ---
 

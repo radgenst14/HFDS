@@ -238,6 +238,18 @@ export const PATH_CONFIDENCE_NO_MARKINGS_FACTOR = 0.4;
 export const ERRATIC_ACCEL_PULSE_FTPS2 = 6;
 /** A-48: ... each lasting this long (s), i.e. a 12 ft/s² change within 1 s (IR8.2). */
 export const ERRATIC_ACCEL_PULSE_S = 0.5;
+/** A-51: ACC speed tracking time constant (s): accel = (target − v) / τ, within the A-09 limits. */
+export const ACC_SPEED_TRACK_TAU_S = 1.0;
+/** A-51: ACC follow mode: commanded speed = lead speed + 0.1 /s × (gap − trail distance). */
+export const ACC_GAP_GAIN_PER_S = 0.1;
+/** A-51: lane keeping (R20): lateral speed = 1.0 /s × lateral error, capped at full steering. */
+export const LANE_KEEP_GAIN_PER_S = 1.0;
+/** A-52: UC11 lane intrusion: a vehicle is entering when its predicted extent overlaps the ego path within this time (s). */
+export const LANE_INTRUSION_PREDICTION_S = 1.0;
+/** A-53: scripted driver `steerToLaneId`: steering input per ft of lateral error (capped at ±1). */
+export const SCRIPTED_STEER_GAIN_PER_FT = 0.5;
+/** A-53: scripted driver `steerToLaneId` ends within this lateral error (ft). */
+export const SCRIPTED_STEER_DONE_FT = 0.3;
 /** A-39: EventLog.capacity; beyond it the oldest entries are dropped (EventLog.count keeps the total). */
 export const EVENT_LOG_CAPACITY = 10_000;
 

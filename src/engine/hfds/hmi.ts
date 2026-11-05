@@ -3,11 +3,14 @@
  * renders it.
  *
  * updateDisplay() (R46) maps the HFDS mode to the light bar (doc 13 §6 table; R33, R34)
- * and keeps the IR6 indicator, IR16 "Update needed" and IR22 FCS mode current.
- * Rejections (R16, R49) and control transfers (R40) are shown for a fixed time (A-44).
+ * and keeps the IR6 indicator, IR16 "Update needed", IR22 FCS mode and the FCS alert
+ * (A-25) current. A takeover request shows "Take steering control immediately." with a
+ * chime or a seat pulse (UC19, ISSUE-16). Rejections (R16, R49) and control transfers
+ * (R40) are shown for a fixed time (A-44).
  */
 import {
   CONTROL_TRANSFER_BANNER_S,
+  HMI_TEXT,
   LIGHT_BAR_ERROR_FLASH_S,
   REJECTION_DISPLAY_S,
 } from '../../shared/constants';
@@ -19,6 +22,7 @@ import {
   SeatVibration,
   type DisplayState,
   type HmiState,
+  type SecondAlertMode,
   type Warning,
 } from '../../shared/domain';
 
@@ -55,6 +59,7 @@ export function initialHmiState(): HmiState {
     onStar: OnStarStatus.idle,
     doorsUnlocked: false,
     fcsMode: FcsMode.Default,
+    forwardCollisionAlert: false,
     updateNeeded: false,
   };
 }
@@ -62,6 +67,16 @@ export function initialHmiState(): HmiState {
 interface Timed {
   text: string;
   until: number;
+}
+
+export interface DisplayInputs {
+  mode: HfdsMode;
+  available: boolean;
+  updateNeeded: boolean;
+  fcsMode: FcsMode;
+  takeoverRequested: boolean;
+  secondAlertMode: SecondAlertMode;
+  forwardCollisionAlert: boolean;
 }
 
 export class HumanMachineInterface {
@@ -114,10 +129,7 @@ export class HumanMachineInterface {
   }
 
   /** R46: current system state and active warnings, plus the indicator channels. */
-  updateDisplay(
-    t: number,
-    s: { mode: HfdsMode; available: boolean; updateNeeded: boolean; fcsMode: FcsMode },
-  ): void {
+  updateDisplay(t: number, s: DisplayInputs): void {
     const live = (x: Timed | null | undefined): string | undefined =>
       x && t < x.until - 1e-9 ? x.text : undefined;
     if (this.rejection && t >= this.rejection.dashboard.until - 1e-9) this.rejection = null;
@@ -125,7 +137,8 @@ export class HumanMachineInterface {
     this.displayedState = s.mode;
     this.lightBarStatus = lightBarFor(s.mode);
     const warningText = live(this.rejection?.warning);
-    this.displayedMessage = warningText ?? '';
+    // UC19: the takeover request message wins over an older activation warning.
+    this.displayedMessage = s.takeoverRequested ? HMI_TEXT.TAKE_CONTROL : (warningText ?? '');
 
     const next: HmiState = {
       ...initialHmiState(),
@@ -136,8 +149,14 @@ export class HumanMachineInterface {
       availableIndicator: s.available,
       lightBarError: t < this.lightBarErrorUntil - 1e-9,
       fcsMode: s.fcsMode,
+      forwardCollisionAlert: s.forwardCollisionAlert,
       updateNeeded: s.updateNeeded,
     };
+    if (s.takeoverRequested) {
+      // ISSUE-16: Class A = flashing red + message + chime, or a seat pulse on "seat" cars.
+      if (s.secondAlertMode === 'chime') next.audibleAlert = true;
+      else next.seatVibration = SeatVibration.pulse;
+    }
     const dashboard = live(this.rejection?.dashboard);
     if (dashboard) next.dashboardError = dashboard;
     const hud = live(this.rejection?.hud);

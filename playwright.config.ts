@@ -7,6 +7,9 @@ const PORT = 4173;
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
+  // Each test runs the real-time simulation and the PixiJS view; more parallel browsers
+  // than this saturate a laptop and make the real-time assertions flaky.
+  workers: process.env.CI ? 2 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',

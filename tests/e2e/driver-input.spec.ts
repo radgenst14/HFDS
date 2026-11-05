@@ -26,7 +26,8 @@ test('[IR25] holding ↑ accelerates and holding Space brakes', async ({ page })
   await page.keyboard.down(' ');
   await page.waitForTimeout(1500);
   await page.keyboard.up(' ');
-  expect(await num(page, 'ego-speed')).toBeLessThan(faster - 10);
+  // 1.5 s at the 10 ft/s² default brake rate ≈ 10 mph; allow for real-time key timing.
+  expect(await num(page, 'ego-speed')).toBeLessThan(faster - 7);
 });
 
 test('P pauses the simulation and . steps one tick', async ({ page }) => {
@@ -42,10 +43,19 @@ test('P pauses the simulation and . steps one tick', async ({ page }) => {
   await expect(page.getByTestId('run-status')).toContainText('Running');
 });
 
-test('[A-34] time scale 4× advances sim time about 4× as fast', async ({ page }) => {
+test('[A-34] time scale 4× advances sim time about 4× as fast as 1×', async ({ page }) => {
+  // Compare against 1× measured in the same run, so a slow or busy machine cannot fail it.
+  const rate = async () => {
+    const t0 = await num(page, 'sim-time');
+    await page.waitForTimeout(1000);
+    return (await num(page, 'sim-time')) - t0;
+  };
+  const normal = await rate();
   await page.locator('#time-scale').selectOption('4');
-  const t0 = await num(page, 'sim-time');
-  await page.waitForTimeout(1000);
-  const dt = (await num(page, 'sim-time')) - t0;
-  expect(dt).toBeGreaterThan(2.5);
+  const fast = await rate();
+  expect(normal).toBeGreaterThan(0.2);
+  expect(
+    fast,
+    `1× advanced ${normal.toFixed(2)} s, 4× advanced ${fast.toFixed(2)} s`,
+  ).toBeGreaterThan(2.5 * normal);
 });
