@@ -6,7 +6,7 @@
  * indicator row (FCS mode IR22 and alert A-25, hazards, OnStar, doors, alert channels)
  * and the control-transfer banner (R40). Renders engine state only.
  */
-import { HMI_TEXT } from '../../shared/constants';
+import { HMI_TEXT, STEER_RESUME_STABLE_S } from '../../shared/constants';
 import type { Snapshot } from '../../shared/protocol';
 import { initLightBar } from './light-bar';
 
@@ -126,11 +126,17 @@ export function initCluster(host: HTMLElement): Cluster {
       fcsAlert.hidden = !hmi.forwardCollisionAlert;
       const timers = s.hfds.timers;
       const cd =
-        timers.takeoverRemainingS !== undefined
-          ? `Take over within ${timers.takeoverRemainingS.toFixed(1)} s (SR7)`
-          : timers.cooldownRemainingS !== undefined
-            ? `Re-check in ${timers.cooldownRemainingS.toFixed(1)} s (R38.4)`
-            : undefined;
+        timers.mrmElapsedS !== undefined
+          ? `Minimal risk maneuver ${timers.mrmElapsedS.toFixed(1)} s (SR1)`
+          : timers.takeoverRemainingS !== undefined
+            ? `Take over within ${timers.takeoverRemainingS.toFixed(1)} s (SR7)`
+            : timers.alertElapsedS !== undefined
+              ? `${hmi.activeWarnings.find((w) => w.warningClass === 'B')?.level ?? ''} alert for ${timers.alertElapsedS.toFixed(1)} s`.trim()
+              : timers.resumeProgressS !== undefined
+                ? `Resuming steering: ${timers.resumeProgressS.toFixed(1)} / ${STEER_RESUME_STABLE_S.toFixed(1)} s (R39.2)`
+                : timers.cooldownRemainingS !== undefined
+                  ? `Re-check in ${timers.cooldownRemainingS.toFixed(1)} s (R38.4)`
+                  : undefined;
       show(countdown, cd);
       show(message, hmi.displayedMessage);
       show(banner, hmi.controlTransferBanner);

@@ -40,6 +40,7 @@ export class VehicleControl {
   lastSource: LongitudinalSource = 'hold';
   /** HFDS longitudinal command actually applied this tick (IR12 invariant), ft/s². */
   appliedHfdsAccel = 0;
+  private phantomBrakeUntil = -Infinity;
 
   constructor(initial: { s: number; y: number; speedMph: number }) {
     this.ego = {
@@ -108,6 +109,15 @@ export class VehicleControl {
   /** R1 brake(rate), ft/s² (positive number = deceleration). */
   brake(rate: number): void {
     this.pending.accel = -Math.abs(rate);
+  }
+
+  /** R31.3 applyPhantomBrake(): a short brake pulse (A-13), applied by HFDS until `untilT`. */
+  applyPhantomBrake(untilT: number): void {
+    this.phantomBrakeUntil = untilT;
+  }
+
+  phantomBrakeActive(t: number): boolean {
+    return t < this.phantomBrakeUntil - 1e-9;
   }
 
   /** UC7 sendCommand(): route a ControlCommand to the matching operation. */

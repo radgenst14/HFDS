@@ -101,6 +101,8 @@ export interface Observation {
   warnings: Array<{ cls: WarningClass; reason: WarningReason }>;
   /** distance to the nearest hazard ahead in the ego's lane (ft) */
   hazardAheadFt: number | null;
+  /** R36: DATS marked the driver inactive (IR11) */
+  driverInactive: boolean;
 }
 
 /** Validates a client intent against the same schema as timeline events (doc 14). */
@@ -421,6 +423,9 @@ export class Engine {
           a.name === 'positioningDataService' ? 'IR17' : 'IR5.9',
         ]);
       }
+      case 'ignitionCycle':
+        hfds.ignitionCycle(t); // IR10 (logged by HFDS)
+        return;
       case 'fcwEscalation':
         hfds.functions.fcwEscalated = true;
         return info('Forward collision warning escalated to a takeover request', ['IR5.10']);
@@ -495,6 +500,7 @@ export class Engine {
         .filter((w) => w.isActive)
         .map((w) => ({ cls: w.warningClass, reason: w.reason })),
       hazardAheadFt: this.hazardAheadFt(),
+      driverInactive: hfds.driverAttention.driverInactive,
     };
   }
 

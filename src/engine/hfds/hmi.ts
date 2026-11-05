@@ -4,9 +4,14 @@
  *
  * updateDisplay() (R46) maps the HFDS mode to the light bar (doc 13 §6 table; R33, R34)
  * and keeps the IR6 indicator, IR16 "Update needed", IR22 FCS mode and the FCS alert
- * (A-25) current. A takeover request shows "Take steering control immediately." with a
- * chime or a seat pulse (UC19, ISSUE-16). Rejections (R16, R49) and control transfers
- * (R40) are shown for a fixed time (A-44).
+ * (A-25) current. Alert channels:
+ *   first alert     flashing green, "Pay attention to the road."                (R29)
+ *   second alert    flashing red, "Take steering control immediately.", chime or
+ *                   seat pulse per vehicle (secondAlertMode)                     (R30)
+ *   final alert     continuous seat vibration + voice prompt                     (R31)
+ *   takeover / MRM  flashing red, "Take steering control immediately.", chime or
+ *                   seat pulse (UC19, ISSUE-16); MRM adds hazards, OnStar, doors (SR1)
+ * Rejections (R16, R49) and control transfers (R40) are shown for a fixed time (A-44).
  */
 import {
   CONTROL_TRANSFER_BANNER_S,
@@ -15,6 +20,7 @@ import {
   REJECTION_DISPLAY_S,
 } from '../../shared/constants';
 import {
+  AlertLevel,
   FcsMode,
   HfdsMode,
   LightBarState,
@@ -77,6 +83,10 @@ export interface DisplayInputs {
   takeoverRequested: boolean;
   secondAlertMode: SecondAlertMode;
   forwardCollisionAlert: boolean;
+  alertLevel: AlertLevel | null;
+  hazardLights: boolean;
+  onStar: OnStarStatus;
+  doorsUnlocked: boolean;
 }
 
 export class HumanMachineInterface {
@@ -137,8 +147,13 @@ export class HumanMachineInterface {
     this.displayedState = s.mode;
     this.lightBarStatus = lightBarFor(s.mode);
     const warningText = live(this.rejection?.warning);
-    // UC19: the takeover request message wins over an older activation warning.
-    this.displayedMessage = s.takeoverRequested ? HMI_TEXT.TAKE_CONTROL : (warningText ?? '');
+    // Alerts and takeover requests win over an older activation warning.
+    this.displayedMessage =
+      s.alertLevel === AlertLevel.First
+        ? HMI_TEXT.PAY_ATTENTION // R29.2
+        : s.alertLevel !== null || s.takeoverRequested
+          ? HMI_TEXT.TAKE_CONTROL // R30.3, UC19
+          : (warningText ?? '');
 
     const next: HmiState = {
       ...initialHmiState(),
@@ -151,9 +166,15 @@ export class HumanMachineInterface {
       fcsMode: s.fcsMode,
       forwardCollisionAlert: s.forwardCollisionAlert,
       updateNeeded: s.updateNeeded,
+      hazardLights: s.hazardLights, // SR1.2
+      onStar: s.onStar, // SR1.3
+      doorsUnlocked: s.doorsUnlocked, // SR1.4
     };
-    if (s.takeoverRequested) {
-      // ISSUE-16: Class A = flashing red + message + chime, or a seat pulse on "seat" cars.
+    if (s.alertLevel === AlertLevel.Final) {
+      next.seatVibration = SeatVibration.continuous; // R31.1
+      next.voicePrompt = HMI_TEXT.TAKE_CONTROL; // R31.2
+    } else if (s.alertLevel === AlertLevel.Second || s.takeoverRequested) {
+      // R30.2 "audible alert or vibrate the seat"; ISSUE-16 uses the same channel for Class A.
       if (s.secondAlertMode === 'chime') next.audibleAlert = true;
       else next.seatVibration = SeatVibration.pulse;
     }

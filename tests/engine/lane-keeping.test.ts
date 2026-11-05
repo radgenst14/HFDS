@@ -241,3 +241,32 @@ describe('surroundings (R4.3, R6, R7, R8, UC11)', () => {
     expect(slow.hfds.driverAssist.detectLaneIntrusion()).toBeNull();
   });
 });
+
+describe('continuous analysis while engaged (R19)', () => {
+  it('[R19][R19.1][R19.2][R19.3][R19.4] position, trajectory, surrounding vehicles and sensor health every tick', () => {
+    const e = build(
+      (s) => (s.traffic = [{ id: 1, sizeClass: 'Car', laneId: 3, sFt: 150, speedMph: 64 }]),
+    );
+    runFor(e, 1.5); // engaged
+    runFor(e, 2, (x) => {
+      const t = x.simTime - 0.05; // the tick that just ran started here
+      const ego = x.vehicleControl.ego;
+      const das = x.hfds.driverAssist;
+      // R19.1 position: VehiclePosition was updated this tick (before the ego moved).
+      expect(x.hfds.vehiclePosition.currentPosition.x).toBeLessThanOrEqual(ego.s);
+      expect(ego.s - x.hfds.vehiclePosition.currentPosition.x).toBeLessThan(
+        ego.speed * 0.05 + 1e-6,
+      );
+      // R19.2 trajectory: lateral offset from the lane centre is current.
+      expect(Number.isFinite(das.lateralOffset)).toBe(true);
+      // R19.3 surrounding vehicles: tracked with relative speed (R7).
+      expect(das.tracks.get(1)?.relativeSpeed).toBeCloseTo(
+        (x.traffic.byId(1)?.speed ?? 0) - ego.speed,
+        6,
+      );
+      // R19.4 sensor health: every sensor read this tick (IR29).
+      for (const sensor of x.hfds.sensors.sensors.values())
+        expect(sensor.lastReading?.t).toBeCloseTo(t, 9);
+    });
+  });
+});
