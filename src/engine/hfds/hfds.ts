@@ -12,6 +12,8 @@
  *       lockout, more Class A causes (IR26 hazard, A-29 ODD exit, IR14 invalid path, UC17
  *       end of road, IR5.10 FCW), Class A superseding Class B (A-22), MRM abort (A-21).
  *   M5  faults, error codes, R38 bands, R41, R44.
+ *   M6  SR8 collision → OnStar emergency call and E701 (A-61); external network commands
+ *       (IR18, IR19, IR21, SR9; A-62).
  *
  * Priority within one tick (doc 13 §6): driver brake > driver takeover > MRM > Class A >
  * Class B > R39 steering pause.
@@ -86,7 +88,7 @@ import { HumanMachineInterface, lightBarFor } from './hmi';
 import { MinimalRiskManeuver } from './mrm';
 import { PathPrediction } from './path-prediction';
 import { PERCEPTION_SENSORS, SensorSuite } from './sensors';
-import { VehicleControl } from './vehicle-control';
+import { VehicleControl, type CommandRejection } from './vehicle-control';
 import { VehicleFunctions } from './vehicle-functions';
 import { VehiclePosition } from './vehicle-position';
 import { issueWarning } from './warning';
@@ -100,6 +102,15 @@ export interface HfdsWorld {
   hazards: HazardField;
   driver: Driver;
   map: LiDARMap;
+}
+
+/** Director `externalCommand` (IR18, IR19; A-62). */
+export interface ExternalCommand {
+  kind: 'steer' | 'accelerate' | 'brake' | 'setSpeed';
+  /** deg for steer, ft/s² for accelerate / brake, mph for setSpeed. */
+  value: number;
+  /** An authenticated service provider is connected (IR19). */
+  authenticated: boolean;
 }
 
 /** Engine-recorded anchors for `after:` expectations (doc 14). */
@@ -157,6 +168,10 @@ export class HFDS {
   private readonly engagedFaultCodes = new Set<string>();
   /** SR4.4: the source last used for lane position and lead distance (for switch logs). */
   private sources = { lane: 'both', lead: 'both' };
+  /** SR8 (A-61): a collision or airbag deployment; E701 stays until an ignition cycle. */
+  collisionDetected: { at: number; airbag: boolean } | null = null;
+  /** SR1.3 / SR8: when the current OnStar call was placed and the IDs it traces to. */
+  private onStarCall: { at: number; reqs: string[] } | null = null;
 
   availabilityChecks: AvailabilityCheck[] = [];
   available = false;
@@ -340,6 +355,12 @@ export class HFDS {
     if (this.driverAttention.detectTampering()) out.push({ code: 'E402' }); // SR2
     if (this.primaryComputeFailed) out.push({ code: 'E601' });
     if (this.controlCorrupted) out.push({ code: 'E501' });
+    if (this.collisionDetected) {
+      out.push({
+        code: 'E701',
+        detail: this.collisionDetected.airbag ? 'airbag deployed' : 'no airbag deployment',
+      });
+    }
     return out;
   }
 
@@ -429,6 +450,15 @@ export class HFDS {
     const tag = (codes: string[]) => [
       ...new Set(codes.flatMap((c) => ERROR_CATALOG[c]?.reqs ?? [])),
     ];
+    if (f.has('E701')) {
+      // A-61: after a collision the sensors may be damaged, so hands-free driving stops and
+      // control goes back to the driver through the normal takeover request (IR24, R28.1).
+      return {
+        reason: WarningReason.COLLISION,
+        reqs: ['SR8', 'IR24', 'R28.1'],
+        detail: `${f.active.get('E701')?.description ?? 'collision'}: hands-free driving cannot continue with possibly damaged sensors`,
+      };
+    }
     if (f.has('E402') || f.has('E401')) {
       const codes = ['E401', 'E402'].filter((c) => f.has(c));
       return {
@@ -546,6 +576,7 @@ export class HFDS {
     if (all || code === 'E401') ok(SensorId.CAM_DRIVER);
     if (all || code === 'E402') this.driverAttention.cameraTamperDetected = false;
     if (all || code === 'E601') this.primaryComputeFailed = false;
+    if (all || code === 'E701') this.collisionDetected = null;
     if (all) this.functions.clearFaults();
   }
 
@@ -807,7 +838,10 @@ export class HFDS {
         this.available
           ? `"${HMI_TEXT.HFDS_AVAILABLE}" shown: all operating constraints met`
           : `"${HMI_TEXT.HFDS_AVAILABLE}" off: ${describeFailures(this.availabilityChecks)}`,
-        ['IR6'],
+        // The failed lines' IDs too, so the trace shows which constraint blocked HFDS.
+        this.available
+          ? ['IR6']
+          : [...new Set(['IR6', ...failedChecks(this.availabilityChecks).flatMap((c) => c.reqs)])],
       );
       this.previousAvailable = this.available;
     }
@@ -1215,14 +1249,15 @@ export class HFDS {
       this.lockedUntilIgnition = true; // IR10
       this.functions.fcsMode = FcsMode.Default; // IR22 applies while HFDS drives
       this.startR41Buffer(t);
-      this.onStar = OnStarStatus.connecting; // SR1.3
+      const calling = this.placeOnStarCall(mrm.stoppedAt ?? t, ['SR1.3']); // SR1.3
       this.doorsUnlocked = true; // SR1.4
       this.log(
         t,
         LogEntryType.info,
         'HFDS',
         `Vehicle stopped ${mrm.stopLane === 0 ? 'on the right shoulder' : `in lane ${mrm.stopLane}`}` +
-          `: connecting an OnStar advisor, doors unlocked; HFDS unavailable until the next ignition cycle`,
+          `: ${calling ? 'connecting an OnStar advisor' : `OnStar advisor already ${this.onStar}`}` +
+          ', doors unlocked; HFDS unavailable until the next ignition cycle',
         ['SR1.1', 'SR1.3', 'SR1.4', 'IR10'],
       );
     }
@@ -1246,6 +1281,87 @@ export class HFDS {
     );
   }
 
+  /** SR1.3 / SR8: call an OnStar advisor unless a call is already up (A-55 connect time). */
+  private placeOnStarCall(at: number, reqs: string[]): boolean {
+    if (this.onStar !== OnStarStatus.idle) return false;
+    this.onStar = OnStarStatus.connecting;
+    this.onStarCall = { at, reqs };
+    return true;
+  }
+
+  /**
+   * SR8: after a collision or airbag deployment HFDS places an emergency call to an OnStar
+   * advisor (Director `collision`). A-61: the event is also recorded as E701 until an
+   * ignition cycle, so while engaged it is a Class A takeover request (faultCause) and
+   * IR23 blocks re-engagement.
+   */
+  detectCollision(t: number, airbag: boolean): void {
+    this.collisionDetected ??= { at: t, airbag };
+    const what = airbag ? 'Collision with airbag deployment' : 'Collision';
+    const calling = this.placeOnStarCall(t, ['SR8']);
+    this.log(
+      t,
+      LogEntryType.info,
+      'HFDS',
+      calling
+        ? `${what} detected: placing an OnStar emergency call`
+        : `${what} detected: OnStar emergency call already ${this.onStar}`,
+      ['SR8'],
+    );
+  }
+
+  /**
+   * IR18, IR19, IR21, SR9 (A-62, ISSUE-43): a command arriving through an external network
+   * (Director `externalCommand`). Without an authenticated service provider every command
+   * is rejected (IR19). An authenticated provider may request a new set speed, which
+   * SpeedManagement applies like the driver's set-speed control (IR27 cap), so the vehicle
+   * still moves only on Driver Assist System commands; direct steering, acceleration and
+   * braking from outside the car are refused by VehicleControl (IR18).
+   */
+  externalCommand(t: number, cmd: ExternalCommand): void {
+    const what = `${cmd.kind} ${cmd.value}`;
+    if (cmd.kind === 'setSpeed') {
+      if (!cmd.authenticated) {
+        this.rejectExternalCommand(t, what, {
+          reason:
+            'it arrived through an external network and no authenticated service provider is connected',
+          reqs: ['IR19'],
+        });
+        return;
+      }
+      const sm = this.speedManagement;
+      sm.requestSetSpeed(cmd.value);
+      this.log(
+        t,
+        LogEntryType.info,
+        'DriverAssistSystem',
+        `Set-speed request (${cmd.value} mph) from an authenticated service provider accepted: ` +
+          `set speed ${sm.setSpeed ?? cmd.value} mph, applied by the Driver Assist System`,
+        ['IR19', 'IR18', 'IR27'],
+      );
+      return;
+    }
+    const rejection = this.vehicleControl.execute({
+      kind: cmd.kind,
+      value: cmd.value,
+      source: 'External',
+      authenticated: cmd.authenticated,
+      reqs: ['IR18', 'IR19'],
+    });
+    if (rejection) this.rejectExternalCommand(t, what, rejection);
+  }
+
+  private rejectExternalCommand(t: number, what: string, r: CommandRejection): void {
+    this.log(
+      t,
+      LogEntryType.warning,
+      'VehicleControl',
+      `External command "${what}" rejected: ${r.reason}. Neither VehicleControl nor the HMI ` +
+        'acts on it; vehicle behavior unchanged',
+      [...new Set([...r.reqs, 'IR21', 'SR9'])],
+    );
+  }
+
   /** IR10: a Director ignition cycle restarts HFDS. */
   ignitionCycle(t: number): void {
     this.mrm = null;
@@ -1253,6 +1369,10 @@ export class HFDS {
     this.lockedUntilIgnition = false;
     this.hazardLights = false;
     this.onStar = OnStarStatus.idle;
+    this.onStarCall = null;
+    // A-61: the restart clears the collision record; E701 then clears without a buffer.
+    this.collisionDetected = null;
+    this.engagedFaultCodes.delete('E701');
     this.takeoverRequestedAt = null;
     this.cooldowns = [];
     this.speedManagement.cancelCruise();
@@ -1376,15 +1496,15 @@ export class HFDS {
   // -------------------------------------------------------------------------
 
   updateHmi(t: number): void {
-    // SR1.3 stub: the advisor connects a few seconds after the stop (A-55).
-    const stoppedAt = this.mrm?.stoppedAt ?? null;
+    // SR1.3 / SR8 stub: the advisor connects a few seconds after the call (A-55).
+    const call = this.onStarCall;
     if (
       this.onStar === OnStarStatus.connecting &&
-      stoppedAt !== null &&
-      t - stoppedAt >= ONSTAR_CONNECT_S - 1e-9
+      call !== null &&
+      t - call.at >= ONSTAR_CONNECT_S - 1e-9
     ) {
       this.onStar = OnStarStatus.connected;
-      this.log(t, LogEntryType.info, 'HFDS', 'OnStar emergency advisor connected', ['SR1.3']);
+      this.log(t, LogEntryType.info, 'HFDS', 'OnStar emergency advisor connected', call.reqs);
     }
     this.hmi.updateDisplay(t, {
       mode: this.mode,

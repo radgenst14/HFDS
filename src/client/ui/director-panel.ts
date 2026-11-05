@@ -253,6 +253,12 @@ export function initDirectorPanel(host: HTMLElement, send: Send): DirectorPanel 
   );
 
   // Emergency
+  const cmdKind = select(['accelerate', 'brake', 'steer', 'setSpeed'], 'External command');
+  const cmdValue = num(5, 'Command value (ft/s², deg or mph)');
+  const cmdAuth = check('authenticated provider');
+  cmdKind.addEventListener('change', () => {
+    cmdValue.value = cmdKind.value === 'setSpeed' ? '60' : '5';
+  });
   const emergency = group(
     'Emergency',
     row(
@@ -264,10 +270,21 @@ export function initDirectorPanel(host: HTMLElement, send: Send): DirectorPanel 
       btn('Collision (airbag)', () => ({ kind: 'collision', args: { airbag: true } })),
     ),
     row(
-      btn('Unauthenticated external command', () => ({
-        kind: 'externalCommand',
-        args: { kind: 'setSpeed', value: 90, authenticated: false },
-      })),
+      cmdKind,
+      cmdValue,
+      cmdAuth.label,
+      btn(
+        'Send external command',
+        () => ({
+          kind: 'externalCommand',
+          args: {
+            kind: cmdKind.value,
+            value: Number(cmdValue.value),
+            authenticated: cmdAuth.box.checked,
+          },
+        }),
+        'director-external-command',
+      ),
     ),
   );
 

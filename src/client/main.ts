@@ -17,9 +17,10 @@ import { initCluster } from './ui/cluster';
 import { initDirectorPanel } from './ui/director-panel';
 import { initDriverPanel } from './ui/driver-panel';
 import { initEventLogPanel } from './ui/event-log';
-import { initScenarioPicker } from './ui/scenario-picker';
+import { initScenarioPicker, readHashScenario, readHashTime } from './ui/scenario-picker';
 import { initSensorsPanel } from './ui/sensors-panel';
 import { initSessionControls } from './ui/session-controls';
+import { initTracePanel } from './ui/trace-panel';
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const node = document.getElementById(id);
@@ -54,9 +55,18 @@ async function init(): Promise<void> {
     transport.send({ type: 'inject', action }),
   );
   const sensorsPanel = initSensorsPanel(byId('sensors-body'));
-  byId('trace-body').textContent = 'Requirement trace panel is added in M6 (doc 17).';
+  const trace = initTracePanel(byId('trace-body'), (id) => log.setFilter(id));
+  const app = byId('app');
 
   let latest: Snapshot | null = null;
+  // `#scenario=<id>&t=<s>`: seek once the scenario has loaded (doc 17 M6 shareable links).
+  let pendingSeek = readHashTime();
+  window.addEventListener('hashchange', () => {
+    const t = readHashTime();
+    if (t === null) return;
+    if (latest && readHashScenario() === latest.scenarioId) transport.send({ type: 'seek', t });
+    else pendingSeek = t;
+  });
   let renderer: RoadRenderer | null = null;
   try {
     renderer = await RoadRenderer.create(byId('road-view'));
@@ -68,6 +78,11 @@ async function init(): Promise<void> {
     switch (msg.type) {
       case 'state':
         latest = msg.snapshot;
+        // Plain state hooks for e2e tests and the screenshot script.
+        app.dataset.scenario = msg.snapshot.scenarioId;
+        app.dataset.simTime = msg.snapshot.simTime.toFixed(2);
+        app.dataset.paused = String(msg.snapshot.paused);
+        app.dataset.mode = msg.snapshot.hfds.mode;
         renderer?.push(msg.snapshot);
         cluster.sync(msg.snapshot);
         checklist.sync(msg.snapshot);
@@ -76,11 +91,18 @@ async function init(): Promise<void> {
         driverPanel.sync(msg.snapshot);
         director.sync(msg.snapshot);
         sensorsPanel.sync(msg.snapshot);
+        trace.sync(msg.snapshot);
         break;
       case 'event':
         if (msg.name === 'scenario_loaded') {
+          const info = msg.data as ScenarioInfo;
           log.clear();
-          renderCaption(captionBody, msg.data as ScenarioInfo);
+          renderCaption(captionBody, info);
+          trace.setScenario(info.requirements);
+          if (pendingSeek !== null) {
+            transport.send({ type: 'seek', t: pendingSeek });
+            pendingSeek = null;
+          }
         } else if (msg.name !== 'scenario_end') {
           log.append(msg.data as LogEntry);
         }

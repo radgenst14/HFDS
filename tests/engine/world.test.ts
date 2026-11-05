@@ -242,11 +242,12 @@ describe('Director injections handled in M1', () => {
     expect(e.hazards.all.at(-1)?.s).toBeCloseTo(egoS + 500, 9);
   });
 
-  it('injections without an M1 effect are logged as not simulated yet', () => {
+  it('[SR8] every doc 14 injection has an effect (collision is simulated from M6)', () => {
     const e = new Engine(quiet);
     e.enqueueInject({ kind: 'collision', args: { airbag: true } });
     const r = e.step();
-    expect(r.entries.some((x) => /not simulated yet/.test(x.message))).toBe(true);
+    expect(r.entries.some((x) => /no simulated effect/.test(x.message))).toBe(false);
+    expect(r.entries.some((x) => x.reqs.includes('SR8'))).toBe(true);
   });
 
   it('client intents are validated with the timeline schema', () => {

@@ -184,6 +184,8 @@ export const WarningReason = {
   INVALID_PATH: 'INVALID_PATH',
   END_OF_ENABLED_ROAD: 'END_OF_ENABLED_ROAD',
   FCW_ESCALATION: 'FCW_ESCALATION',
+  /** SR8, IR24 (A-61): a collision or airbag deployment while engaged. */
+  COLLISION: 'COLLISION',
 } as const;
 export type WarningReason = (typeof WarningReason)[keyof typeof WarningReason];
 

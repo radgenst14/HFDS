@@ -8,6 +8,10 @@
  *                 as the stronger deceleration.
  *   lateral       driver steering ≥ threshold (A-17) > HFDS steering > driver input.
  * Steering angle and lateral speed map linearly: ±15° ↔ ±4 ft/s (A-36).
+ *
+ * Command sources (IR18, IR19, A-62): only the authenticated in-car DriverAssistSystem and
+ * the driver's own controls may command the vehicle; a command from an external network
+ * is refused and the caller logs it.
  */
 import {
   DRIVER_MAX_ACCEL_FTPS2,
@@ -21,6 +25,12 @@ import { SubsystemStatus, type ControlCommand, type VehicleState } from '../../s
 import { integrateEgo, type EgoCommand, type EgoState } from '../world/ego-kinematics';
 import type { Driver } from '../world/driver';
 import type { Road } from '../world/road';
+
+/** Why VehicleControl refused a ControlCommand (IR18, IR19). */
+export interface CommandRejection {
+  reason: string;
+  reqs: string[];
+}
 
 /** Who decided the longitudinal command this tick (for the snapshot / tests). */
 export type LongitudinalSource = 'driverBrake' | 'fcs' | 'driverThrottle' | 'hfds' | 'hold';
@@ -120,8 +130,33 @@ export class VehicleControl {
     return t < this.phantomBrakeUntil - 1e-9;
   }
 
-  /** UC7 sendCommand(): route a ControlCommand to the matching operation. */
-  execute(cmd: ControlCommand): void {
+  /**
+   * IR18: execute commands only from the authenticated in-car DriverAssistSystem or from
+   * the driver's own controls. IR19: a command arriving through an external network is
+   * rejected unless an authenticated service provider is connected; even then it may not
+   * steer, accelerate or brake the vehicle directly (IR18 wins, ISSUE-43 / A-62).
+   */
+  authorize(cmd: ControlCommand): CommandRejection | null {
+    if (cmd.source === 'Driver') return null;
+    if (cmd.source === 'DriverAssistSystem' && cmd.authenticated) return null;
+    if (cmd.source === 'External' && !cmd.authenticated) {
+      return {
+        reason:
+          'it arrived through an external network and no authenticated service provider is connected',
+        reqs: ['IR19', 'IR18'],
+      };
+    }
+    return {
+      reason:
+        "steering, acceleration and braking commands are accepted only from the in-car Driver Assist System or the driver's own controls",
+      reqs: ['IR18'],
+    };
+  }
+
+  /** UC7 sendCommand(): route an authorized ControlCommand to the matching operation. */
+  execute(cmd: ControlCommand): CommandRejection | null {
+    const rejection = this.authorize(cmd);
+    if (rejection) return rejection;
     switch (cmd.kind) {
       case 'steer':
         this.steer(cmd.value);
@@ -135,6 +170,7 @@ export class VehicleControl {
         this.brake(cmd.value);
         break;
     }
+    return null;
   }
 
   /** Doc 13 §11 step 8: driver input (IR25), FCS (A-25), then HFDS (R1), else hold (A-26). */

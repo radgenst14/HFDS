@@ -53,6 +53,12 @@ export type ClientMessage =
   | { type: 'resume' }
   /** Advance one tick while paused (debugging, screenshots). */
   | { type: 'step' }
+  /**
+   * Run fixed ticks of the loaded scenario until simTime reaches `t` (restarting it when
+   * `t` is earlier), then pause: `#scenario=<id>&t=<s>` links and the screenshot script.
+   * Inputs given so far are replayed only if they are part of the preset's timeline.
+   */
+  | { type: 'seek'; t: number }
   /** Fixed-dt steps per real tick; dt stays 0.05 s (A-11, A-34). */
   | { type: 'set_time_scale'; scale: TimeScale }
   /** EventLog.exportLog(). */

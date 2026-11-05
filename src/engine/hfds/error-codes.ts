@@ -8,7 +8,7 @@
  * ones (R9: detected every tick by the self-tests, IR29 / SR10).
  *
  * Codes E107–E109 extend the kit catalog (A-58): rear camera, positioning data service
- * (IR17) and grip sensors.
+ * (IR17) and grip sensors. E701 records a collision or airbag deployment (SR8, A-61).
  */
 import { SEVERITY_BANDS } from '../../shared/constants';
 import { ErrorBand, type ErrorCode, type SensorMetadata } from '../../shared/domain';
@@ -33,7 +33,7 @@ const entry = (
   reqs,
 });
 
-/** A-19 (doc 13 §9) + A-58 extensions. */
+/** A-19 (doc 13 §9) + A-58 and A-61 extensions. */
 export const ERROR_CATALOG: Readonly<Record<string, CatalogEntry>> = {
   E101: entry('E101', 'Front camera obstructed or failed', 60, ['R9', 'R9.1', 'IR5.6']),
   E102: entry('E102', 'Front radar failed', 50, ['R9', 'R9.1', 'IR5.6']),
@@ -59,6 +59,7 @@ export const ERROR_CATALOG: Readonly<Record<string, CatalogEntry>> = {
   E402: entry('E402', 'Driver camera tampering detected', 90, ['SR2', 'SR5']),
   E501: entry('E501', 'HFDS control process corrupted', 75, ['R44']),
   E601: entry('E601', 'Primary computing or power hardware failure', 95, ['SR4.3', 'SR3']),
+  E701: entry('E701', 'Collision or airbag deployment detected', 100, ['SR8', 'IR24']),
 };
 
 /** R37.2 severity band. */

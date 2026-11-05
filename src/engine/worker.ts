@@ -6,7 +6,7 @@
  * The scenarios base URL arrives as the Worker's `name` (set by WorkerTransport) because
  * the worker script's own URL differs between dev and build.
  */
-import { HOST_TICK_MS, TIME_SCALES, type TimeScale } from '../shared/constants';
+import { DT_S, HOST_TICK_MS, TIME_SCALES, type TimeScale } from '../shared/constants';
 import type { ScenarioIndexEntry } from '../shared/scenario-schema';
 import { eventFromLog, type ClientMessage, type EngineMessage } from '../shared/protocol';
 import { stepsForRealTick } from './clock';
@@ -130,6 +130,18 @@ ctx.onmessage = (ev) => {
         postState();
       }
       break;
+    case 'seek': {
+      if (!current) return postError('No scenario loaded');
+      if (!Number.isFinite(msg.t) || msg.t < 0) return postError(`Invalid seek time ${msg.t}`);
+      const target = Math.min(msg.t, current.durationS);
+      if (!engine || target < engine.simTime - 1e-9) start(current);
+      const steps = Math.round((target - (engine?.simTime ?? 0)) / DT_S);
+      if (steps > 0) runSteps(steps);
+      paused = true;
+      accumulator = 0;
+      postState();
+      break;
+    }
     case 'set_time_scale':
       if ((TIME_SCALES as readonly number[]).includes(msg.scale)) {
         timeScale = msg.scale;
