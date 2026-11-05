@@ -175,3 +175,96 @@ select:disabled {
     transition: none !important;
   }
 }
+
+/* M1: panels */
+.road-view canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+}
+
+.readout-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.readout-value {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cluster-note,
+.caption-meta,
+.caption-reqs {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.caption-title {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.caption-error {
+  color: #ff8a80;
+}
+
+.panel h3 {
+  font-size: 12px;
+  margin: 8px 0 2px;
+}
+
+.panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.control-label {
+  width: 64px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.control-row input[type='range'] {
+  flex: 1;
+  min-width: 100px;
+}
+
+.control-row input[type='number'] {
+  width: 64px;
+}
+
+button.active {
+  background: #8b1e1e;
+}
+
+.hfds-button {
+  border-color: var(--accent);
+}
+
+.log-entry {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  padding: 1px 0;
+  border-bottom: 1px solid #222c34;
+}

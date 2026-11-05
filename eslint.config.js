@@ -103,6 +103,7 @@ export default tseslint.config(
     // A-35: the Worker host is the single engine file allowed to own real-time timers
     // and to fetch scenario files (doc 15 Part A, "How a scenario loads" step 3).
     files: ['src/engine/worker.ts'],
+    languageOptions: { globals: { ...globals.es2022, ...globals.worker } },
     rules: {
       'no-restricted-globals': ['error', ...DOM_GLOBALS.filter((g) => g !== 'fetch').map(msg)],
       'no-restricted-imports': [

@@ -197,3 +197,39 @@ export const MPH_TO_FTPS = 5280 / 3600;
 export const M_TO_FT = 3.28084;
 /** Scenario/protocol schema version, bumped when the preset format changes. */
 export const SCENARIO_SCHEMA_VERSION = 1;
+/** Worker host real-tick interval (ms); one fixed engine step per tick at 1× (A-11, A-35). */
+export const HOST_TICK_MS = 1000 / TICK_HZ;
+/** Road geometry sent in a snapshot: this far behind the ego (ft). Plumbing (doc 15 B4 size limit). */
+export const SNAPSHOT_WINDOW_BEHIND_FT = 300;
+/** Road geometry sent in a snapshot: this far ahead of the ego (ft). */
+export const SNAPSHOT_WINDOW_AHEAD_FT = 1200;
+
+// ===========================================================================
+// 4. Manual driving and world model (M1)
+// ===========================================================================
+
+/** A-36: driver throttle 1.0 gives this acceleration (manual driving, IR25). */
+export const DRIVER_MAX_ACCEL_FTPS2 = 6.0;
+/** A-36: brake rate when a setBrake input gives none. */
+export const DRIVER_DEFAULT_BRAKE_FTPS2 = 10.0;
+/** A-36: full steering input (|steer| = 1) moves the ego sideways at this speed; + = left. */
+export const DRIVER_MAX_LATERAL_SPEED_FTPS = 4.0;
+/** A-36: displayed steering-wheel angle at full input (VehicleControl.currentSteeringAngle). */
+export const MAX_STEERING_ANGLE_DEG = 15;
+/** A-37: the ego's front bumper starts at s = 0 on the road (hazards and segments use absolute s). */
+export const EGO_START_S_FT = 0;
+/** A-39: EventLog.capacity; beyond it the oldest entries are dropped (EventLog.count keeps the total). */
+export const EVENT_LOG_CAPACITY = 10_000;
+
+// ===========================================================================
+// 5. Client display (no effect on engine behavior)
+// ===========================================================================
+
+/** A-36: steering input sent while ←/→ is held (doc 15 B6 keyboard). */
+export const KEYBOARD_STEER_INPUT = 0.5;
+/** Rows kept in the event log panel; the full log stays in the engine (export). */
+export const EVENT_LOG_PANEL_MAX_ROWS = 500;
+/** Road view shows at least this much road (ft) across its width, ego at 25 % from the left. */
+export const ROAD_VIEW_MIN_RANGE_FT = 600;
+/** Road view may draw the across-road axis up to this many times the along-road scale. */
+export const ROAD_VIEW_MAX_LATERAL_STRETCH = 2.5;

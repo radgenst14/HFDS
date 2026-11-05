@@ -1,80 +1,101 @@
 /**
- * Client entry (M0): loads scenarios/index.json into the picker and keeps
- * `#scenario=<id>` in the URL (doc 15 Part A "How a scenario loads", steps 1 and 5).
- * The engine, transport, renderer and panels are wired in M1+. The client never
- * decides HFDS outcomes (CLAUDE.md rule 5).
+ * Client entry: wires the scenario picker, session controls, Driver panel, keyboard,
+ * road renderer, cluster, caption and event log to the engine through the Transport
+ * (doc 15 Part A "Architecture"). The client renders snapshots and sends intents; it
+ * never decides HFDS outcomes (CLAUDE.md rule 5).
  */
-import { ScenarioIndexSchema, type ScenarioIndexEntry } from '../shared/scenario-schema';
+import type { LogEntry, LogFile } from '../shared/domain';
+import type { EngineMessage, Snapshot } from '../shared/protocol';
+import { WorkerTransport } from '../transport/worker-transport';
+import type { Transport } from '../transport/transport';
+import { initKeyboard } from './input';
+import { RoadRenderer } from './renderer/renderer';
+import { renderCaption, renderCaptionError, type ScenarioInfo } from './ui/caption-panel';
+import { initCluster } from './ui/cluster';
+import { initDriverPanel } from './ui/driver-panel';
+import { initEventLogPanel } from './ui/event-log';
+import { initScenarioPicker } from './ui/scenario-picker';
+import { initSessionControls } from './ui/session-controls';
 
-const HASH_KEY = 'scenario';
+const byId = <T extends HTMLElement>(id: string): T => {
+  const node = document.getElementById(id);
+  if (!node) throw new Error(`#${id} missing from index.html`);
+  return node as T;
+};
 
-function readHashScenario(): string | null {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  return params.get(HASH_KEY);
-}
-
-function writeHashScenario(id: string): void {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  params.set(HASH_KEY, id);
-  window.history.replaceState(null, '', `#${params.toString()}`);
-}
-
-function label(entry: ScenarioIndexEntry): string {
-  const code = entry.id.split('-')[0]?.toUpperCase() ?? entry.id;
-  const customer =
-    entry.customerScenario !== null ? ` · Customer Scenario ${entry.customerScenario}` : '';
-  const optional = entry.optional ? ' (optional)' : '';
-  return `${code} — ${entry.name}${customer}${optional}`;
-}
-
-function renderCaptionPlaceholder(entry: ScenarioIndexEntry | undefined): void {
-  const body = document.getElementById('caption-body');
-  if (!body) return;
-  body.textContent = entry ? label(entry) : '';
-}
-
-async function loadIndex(): Promise<ScenarioIndexEntry[]> {
-  // Relative URL: works under the EGR subpath (base './').
-  const res = await fetch('./scenarios/index.json', { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`scenarios/index.json: HTTP ${res.status}`);
-  return ScenarioIndexSchema.parse(await res.json()).scenarios;
+function downloadLog(file: LogFile): void {
+  const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `hfds-log-${file.scenarioId}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function init(): Promise<void> {
-  const picker = document.getElementById('scenario-picker') as HTMLSelectElement | null;
-  if (!picker) return;
+  const scenariosBase = new URL('./scenarios/', document.baseURI).href;
+  const transport: Transport = new WorkerTransport(scenariosBase);
+
+  const captionBody = byId('caption-body');
+  const cluster = initCluster(byId('cluster'));
+  const log = initEventLogPanel(byId<HTMLOListElement>('event-log-body'));
+  const session = initSessionControls((m) => transport.send(m));
+  const driverPanel = initDriverPanel(byId('driver-body'), (action) =>
+    transport.send({ type: 'input', action }),
+  );
+  byId('director-body').textContent = 'Director injections are added in M5 (doc 17).';
+  byId('trace-body').textContent = 'Requirement trace panel is added in M6 (doc 17).';
+
+  let latest: Snapshot | null = null;
+  let renderer: RoadRenderer | null = null;
   try {
-    const entries = await loadIndex();
-    picker.replaceChildren(
-      ...entries.map((e) => {
-        const opt = document.createElement('option');
-        opt.value = e.id;
-        opt.textContent = label(e);
-        return opt;
-      }),
-    );
-    const fromHash = readHashScenario();
-    const initial = entries.find((e) => e.id === fromHash) ?? entries[0];
-    if (initial) {
-      picker.value = initial.id;
-      writeHashScenario(initial.id);
-      renderCaptionPlaceholder(initial);
+    renderer = await RoadRenderer.create(byId('road-view'));
+  } catch (err) {
+    byId('road-view').textContent = `Road view unavailable: ${String(err)}`;
+  }
+
+  transport.onMessage((msg: EngineMessage) => {
+    switch (msg.type) {
+      case 'state':
+        latest = msg.snapshot;
+        renderer?.push(msg.snapshot);
+        cluster.sync(msg.snapshot);
+        session.sync(msg.snapshot);
+        driverPanel.sync(msg.snapshot);
+        break;
+      case 'event':
+        if (msg.name === 'scenario_loaded') {
+          log.clear();
+          renderCaption(captionBody, msg.data as ScenarioInfo);
+        } else if (msg.name !== 'scenario_end') {
+          log.append(msg.data as LogEntry);
+        }
+        break;
+      case 'error':
+        console.error(msg.message);
+        renderCaptionError(captionBody, msg.message);
+        break;
+      case 'log_export':
+        downloadLog(msg.file);
+        break;
     }
-    picker.addEventListener('change', () => {
-      writeHashScenario(picker.value);
-      renderCaptionPlaceholder(entries.find((e) => e.id === picker.value));
-    });
-    window.addEventListener('hashchange', () => {
-      const entry = entries.find((e) => e.id === readHashScenario());
-      if (entry && entry.id !== picker.value) {
-        picker.value = entry.id;
-        renderCaptionPlaceholder(entry);
-      }
-    });
-    picker.dataset.loaded = 'true';
+  });
+
+  initKeyboard({
+    sendInput: (action) => transport.send({ type: 'input', action }),
+    latest: () => latest,
+    togglePause: () => session.togglePause(),
+    step: () => session.step(),
+    setTimeScale: (scale) => session.setTimeScale(scale),
+  });
+
+  const picker = byId<HTMLSelectElement>('scenario-picker');
+  try {
+    await initScenarioPicker(picker, (id) => transport.send({ type: 'load_scenario', id }));
   } catch (err) {
     picker.replaceChildren(new Option('Failed to load presets', '', true, true));
-    console.error(err);
+    renderCaptionError(captionBody, String(err));
   }
 }
 
