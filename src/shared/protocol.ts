@@ -78,6 +78,8 @@ export interface AccSnapshot {
   trailDistanceFt: number;
   selectionDistanceFt: number;
   safetyCushionFt: number;
+  /** A-05 (revised): gap at which coasting starts for the current lead (null without one). */
+  coastStartFt: number | null;
   zone: FollowingZone | null;
   gapFt: number | null;
   closingSpeedFtps: number;

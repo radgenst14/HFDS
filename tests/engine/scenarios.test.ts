@@ -13,7 +13,7 @@ import { presetIds, readPreset } from './helpers';
  * run once the milestone that implements its behaviour is done; until then they are
  * listed as todo so the gap stays visible.
  */
-const CURRENT_MILESTONE = 2;
+const CURRENT_MILESTONE = 3;
 const PRESET_MILESTONE: Record<string, number> = {
   's01-activation-success': 2,
   's02-rejected-outdated-map': 2,
@@ -58,6 +58,27 @@ describe.each(presetIds().filter((id) => id !== 's00-sandbox'))('preset %s', (id
       const r = run()[i];
       expect(r?.pass, r?.message).toBe(true);
     });
+  });
+
+  it('[IR12] HFDS never commands acceleration while the light bar flashes red', () => {
+    run();
+    const bad = rec.frames.find((f) => f.lightBar === 'FlashingRed' && f.hfdsAccelCmd > 1e-9);
+    expect(bad, bad && `+${bad.hfdsAccelCmd} ft/s² at ${bad.t} s`).toBeUndefined();
+  });
+
+  it('[IR27] HFDS never commands more than 85 mph', () => {
+    run();
+    for (const f of rec.frames) {
+      if (f.setSpeedMph !== null) expect(f.setSpeedMph).toBeLessThanOrEqual(85);
+      if (f.mode === 'HANDS_FREE' && f.hfdsAccelCmd > 0)
+        expect(f.speedMph).toBeLessThanOrEqual(85 + 1e-6);
+    }
+  });
+
+  it('[R18] while hands-free the vehicle stays inside its lane', () => {
+    run();
+    const bad = rec.frames.find((f) => f.mode === 'HANDS_FREE' && !f.inLane);
+    expect(bad, bad && `left the lane at ${bad.t} s`).toBeUndefined();
   });
 
   it('[R45] every log entry has a timestamp, in order', () => {

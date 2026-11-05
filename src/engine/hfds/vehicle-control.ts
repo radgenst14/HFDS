@@ -1,10 +1,13 @@
 /**
- * VehicleControl (doc 12). Owns the ego kinematic model and arbitrates driver input over
- * HFDS commands (IR25: driver input always wins; doc 13 §10).
+ * VehicleControl (doc 12). Owns the ego kinematic model, executes the DriverAssistSystem's
+ * ControlCommands (R1) and arbitrates driver input over them (IR25; doc 13 §10).
  *
- * M1: only driver input exists. With no pedal input the ego holds its speed (A-26).
- * From M3 the DriverAssistSystem sends ControlCommands here (R1); the arbitration
- * order below stays: brake > throttle > HFDS longitudinal; steering > HFDS lateral.
+ * Arbitration each tick (doc 13 §11 step 8):
+ *   longitudinal  driver brake > Forward Collision System > driver throttle (A-24) > HFDS
+ *                 command > hold speed (A-26). The FCS (A-25) and the driver brake combine
+ *                 as the stronger deceleration.
+ *   lateral       driver steering ≥ threshold (A-17) > HFDS steering > driver input.
+ * Steering angle and lateral speed map linearly: ±15° ↔ ±4 ft/s (A-36).
  */
 import {
   DRIVER_MAX_ACCEL_FTPS2,
@@ -12,11 +15,15 @@ import {
   MAX_STEERING_ANGLE_DEG,
   MIN_ENGAGE_SPEED_MPH,
   MPH_TO_FTPS,
+  STEER_INPUT_THRESHOLD,
 } from '../../shared/constants';
-import { SubsystemStatus, type VehicleState } from '../../shared/domain';
+import { SubsystemStatus, type ControlCommand, type VehicleState } from '../../shared/domain';
 import { integrateEgo, type EgoCommand, type EgoState } from '../world/ego-kinematics';
 import type { Driver } from '../world/driver';
 import type { Road } from '../world/road';
+
+/** Who decided the longitudinal command this tick (for the snapshot / tests). */
+export type LongitudinalSource = 'driverBrake' | 'fcs' | 'driverThrottle' | 'hfds' | 'hold';
 
 export class VehicleControl {
   status: SubsystemStatus = SubsystemStatus.OK;
@@ -24,6 +31,15 @@ export class VehicleControl {
   /** deg (display) */
   currentSteeringAngle = 0;
   driverBrakeApplied = false;
+  /** Commands from the DriverAssistSystem for this tick (R1). */
+  private pending: { steerDeg: number | null; accel: number | null } = {
+    steerDeg: null,
+    accel: null,
+  };
+  /** Last arbitration result. */
+  lastSource: LongitudinalSource = 'hold';
+  /** HFDS longitudinal command actually applied this tick (IR12 invariant), ft/s². */
+  appliedHfdsAccel = 0;
 
   constructor(initial: { s: number; y: number; speedMph: number }) {
     this.ego = {
@@ -71,18 +87,77 @@ export class VehicleControl {
     return driver.brakePressed;
   }
 
-  detectDriverSteering(driver: Driver, threshold: number): boolean {
+  /** A-17: the driver is steering when |input| ≥ 0.05. */
+  detectDriverSteering(driver: Driver, threshold = STEER_INPUT_THRESHOLD): boolean {
     return Math.abs(driver.steeringInput) >= threshold;
   }
 
-  /** Doc 13 §11 step 8: driver input (IR25), else hold speed (A-26). */
-  arbitrate(driver: Driver): EgoCommand {
+  /** R1 steer(angle), deg. */
+  steer(angleDeg: number): void {
+    this.pending.steerDeg = Math.max(
+      -MAX_STEERING_ANGLE_DEG,
+      Math.min(MAX_STEERING_ANGLE_DEG, angleDeg),
+    );
+  }
+
+  /** R1 accelerate(rate), ft/s². */
+  accelerate(rate: number): void {
+    this.pending.accel = rate;
+  }
+
+  /** R1 brake(rate), ft/s² (positive number = deceleration). */
+  brake(rate: number): void {
+    this.pending.accel = -Math.abs(rate);
+  }
+
+  /** UC7 sendCommand(): route a ControlCommand to the matching operation. */
+  execute(cmd: ControlCommand): void {
+    switch (cmd.kind) {
+      case 'steer':
+        this.steer(cmd.value);
+        break;
+      case 'accelerate':
+        this.accelerate(cmd.value);
+        break;
+      case 'brake':
+      case 'coast':
+      case 'phantomBrake':
+        this.brake(cmd.value);
+        break;
+    }
+  }
+
+  /** Doc 13 §11 step 8: driver input (IR25), FCS (A-25), then HFDS (R1), else hold (A-26). */
+  arbitrate(driver: Driver, fcsDecel = 0): EgoCommand {
+    const hfds = this.pending;
+    this.pending = { steerDeg: null, accel: null };
     this.driverBrakeApplied = driver.brakePressed;
+
     let accel = 0;
-    if (driver.brakePressed) accel = -driver.brakeRate;
-    else if (driver.throttleInput > 0) accel = driver.throttleInput * DRIVER_MAX_ACCEL_FTPS2;
-    this.currentSteeringAngle = driver.steeringInput * MAX_STEERING_ANGLE_DEG;
-    return { accel, lateralSpeed: driver.steeringInput * DRIVER_MAX_LATERAL_SPEED_FTPS };
+    let source: LongitudinalSource = 'hold';
+    if (driver.brakePressed) {
+      accel = -Math.max(driver.brakeRate, fcsDecel);
+      source = 'driverBrake';
+    } else if (fcsDecel > 0) {
+      accel = -fcsDecel;
+      source = 'fcs';
+    } else if (driver.throttleInput > 0) {
+      accel = driver.throttleInput * DRIVER_MAX_ACCEL_FTPS2; // A-24: overrides ACC
+      source = 'driverThrottle';
+    } else if (hfds.accel !== null) {
+      accel = hfds.accel;
+      source = 'hfds';
+    }
+    this.lastSource = source;
+    this.appliedHfdsAccel = source === 'hfds' ? accel : 0;
+
+    let steerDeg = driver.steeringInput * MAX_STEERING_ANGLE_DEG;
+    if (!this.detectDriverSteering(driver) && hfds.steerDeg !== null) steerDeg = hfds.steerDeg;
+    this.currentSteeringAngle = steerDeg;
+    return {
+      accel,
+      lateralSpeed: (steerDeg / MAX_STEERING_ANGLE_DEG) * DRIVER_MAX_LATERAL_SPEED_FTPS,
+    };
   }
 
   /** Doc 13 §11 step 9. */
