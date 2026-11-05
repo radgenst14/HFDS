@@ -85,6 +85,29 @@ export class LiDARMap {
     return this.enabled;
   }
 
+  /**
+   * R10 detectMismatch(): the sensed road ahead (within `rangeFt`, the forward sensor
+   * range) has a stretch the map does not contain — e.g. a construction zone missing from
+   * the map (segment `inMap: false`). Returns a description, or null.
+   */
+  detectMismatch(
+    egoS: number,
+    rangeFt: number,
+    segments: ReadonlyArray<{
+      fromFt: number;
+      toFt: number;
+      inMap?: boolean;
+      constructionZone?: boolean;
+    }>,
+  ): string | null {
+    for (const g of segments) {
+      if (g.inMap !== false || g.toFt <= egoS || g.fromFt > egoS + rangeFt) continue;
+      const what = g.constructionZone ? 'construction zone' : 'road layout';
+      return `${what} at ${g.fromFt.toFixed(0)}–${g.toFt.toFixed(0)} ft not in the LiDAR map`;
+    }
+    return null;
+  }
+
   /** R11: a downloaded map update replaces the stored version. */
   applyUpdate(update: MapUpdate): void {
     this.version = update.version;

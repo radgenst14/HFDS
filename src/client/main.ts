@@ -14,9 +14,11 @@ import { RoadRenderer } from './renderer/renderer';
 import { renderCaption, renderCaptionError, type ScenarioInfo } from './ui/caption-panel';
 import { initChecklist } from './ui/checklist';
 import { initCluster } from './ui/cluster';
+import { initDirectorPanel } from './ui/director-panel';
 import { initDriverPanel } from './ui/driver-panel';
 import { initEventLogPanel } from './ui/event-log';
 import { initScenarioPicker } from './ui/scenario-picker';
+import { initSensorsPanel } from './ui/sensors-panel';
 import { initSessionControls } from './ui/session-controls';
 
 const byId = <T extends HTMLElement>(id: string): T => {
@@ -48,7 +50,10 @@ async function init(): Promise<void> {
   const driverPanel = initDriverPanel(byId('driver-body'), (action) =>
     transport.send({ type: 'input', action }),
   );
-  byId('director-body').textContent = 'Director injections are added in M5 (doc 17).';
+  const director = initDirectorPanel(byId('director-body'), (action) =>
+    transport.send({ type: 'inject', action }),
+  );
+  const sensorsPanel = initSensorsPanel(byId('sensors-body'));
   byId('trace-body').textContent = 'Requirement trace panel is added in M6 (doc 17).';
 
   let latest: Snapshot | null = null;
@@ -69,6 +74,8 @@ async function init(): Promise<void> {
         audio.sync(msg.snapshot.hmi);
         session.sync(msg.snapshot);
         driverPanel.sync(msg.snapshot);
+        director.sync(msg.snapshot);
+        sensorsPanel.sync(msg.snapshot);
         break;
       case 'event':
         if (msg.name === 'scenario_loaded') {

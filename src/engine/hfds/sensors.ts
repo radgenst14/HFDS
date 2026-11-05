@@ -115,6 +115,12 @@ export class SensorSuite {
     this.gpsCorrectionStartAgeS = ageS;
   }
 
+  /** GPS corrections download again (Director `clearFault E105`). */
+  restoreGpsCorrection(): void {
+    this.gpsCorrectionStoppedAt = null;
+    this.gpsCorrectionStartAgeS = 0;
+  }
+
   /** Director `failSensor` (R9, IR5.6). */
   setStatus(id: SensorId, status: SensorStatus): void {
     this.get(id).status = status;

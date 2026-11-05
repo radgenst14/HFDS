@@ -244,7 +244,7 @@ describe('Director injections handled in M1', () => {
 
   it('injections without an M1 effect are logged as not simulated yet', () => {
     const e = new Engine(quiet);
-    e.enqueueInject({ kind: 'tamperDriverCamera' });
+    e.enqueueInject({ kind: 'collision', args: { airbag: true } });
     const r = e.step();
     expect(r.entries.some((x) => /not simulated yet/.test(x.message))).toBe(true);
   });

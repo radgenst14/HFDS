@@ -126,7 +126,7 @@ describe('IR3 driver engaged (DATS)', () => {
       engine((s) => (s.sensorOverrides = { CAM_DRIVER: 'Failed' })),
       2,
     );
-    failsOnly(e, ['IR3', 'IR4', 'IR5.8']);
+    failsOnly(e, ['IR3', 'IR4', 'IR5.8', 'IR23']); // E401 is high severity (IR23)
   });
 });
 
@@ -287,7 +287,7 @@ describe('IR5 operating design domain', () => {
     expect(run(ok, 2).hfds.available).toBe(true);
     const bad = engine();
     bad.hfds.vehiclePosition.injectedDisagreementM = 0.31;
-    failsOnly(run(bad, 2), ['IR5.8']);
+    failsOnly(run(bad, 2), ['IR5.8', 'R38']); // E106 middle severity blocks until cleared
   });
 
   it('[IR5.9] fails when motion forecasting, self-supervision or dynamic environment is off', () => {
@@ -311,7 +311,7 @@ describe('IR5 operating design domain', () => {
         kind: 'setSubsystemFlag',
         args: { name: 'positioningDataService', ok: false },
       }),
-      ['IR17'],
+      ['IR17', 'R38'], // E108 (A-58)
     );
   });
 });
@@ -386,7 +386,7 @@ describe('IR16 map age', () => {
       engine((s) => ((s.simDate = '2026-11-04'), (s.map.lastUpdated = '2026-04-03'))),
       1,
     );
-    failsOnly(old, ['IR16']);
+    failsOnly(old, ['IR16', 'R38']); // E202 middle severity
     expect(check(old, 'IR16').detail).toContain('Update needed');
     expect(old.hfds.hmi.current.updateNeeded).toBe(true);
   });
