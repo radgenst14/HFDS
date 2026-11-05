@@ -5,7 +5,8 @@
  *
  * Timing semantics (doc 14, refined here, see doc 16 ISSUE-37):
  *   at t          holds at a tick within ±1 tick (0.05 s) of t
- *   by t          holds at some tick with time ≤ t
+ *   by t          has become true by t and still holds at t (±1 tick); the result
+ *                 records when the current stretch of truth began
  *   from/to       holds at every tick in [from, to]; a bound may be an anchor
  *   after a+s     holds within ±1 tick of anchor a + s (a bare anchor = +0 s)
  *   whenEgoSFt x  holds within ±1 tick of the first tick with ego s ≥ x
@@ -239,10 +240,13 @@ function checkFrames(
         : { pass: false, message: `did not hold ${w.what}` };
     }
     case 'by': {
-      const hit = frames.find((f) => f.t <= w.t + EPS && pred(f));
-      return hit
-        ? { pass: true, message: `held at ${hit.t.toFixed(2)} s (by ${w.t} s)` }
-        : { pass: false, message: `never held by ${w.t} s` };
+      // "Becomes true by t": it must hold at t, not merely at some earlier tick.
+      const idx = frames.findIndex((f) => Math.abs(f.t - w.t) <= TOL && pred(f));
+      if (idx < 0) return { pass: false, message: `did not hold at ${w.t} s` };
+      let start = idx;
+      while (start > 0 && pred(frames[start - 1] as Observation)) start--;
+      const since = frames[start]?.t ?? 0;
+      return { pass: true, message: `held at ${w.t} s (true since ${since.toFixed(2)} s)` };
     }
     case 'all': {
       const inside = frames.filter((f) => f.t >= w.from - EPS && f.t <= w.to + EPS);

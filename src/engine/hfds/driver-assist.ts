@@ -41,6 +41,7 @@ import {
   type ControlCommand,
   type Environment,
   type GapSetting,
+  type Hazard,
 } from '../../shared/domain';
 import type { EnvironmentState } from '../world/environment';
 import type { Road } from '../world/road';
@@ -111,6 +112,8 @@ export class DriverAssistSystem {
   readonly speedManagement: SpeedManagement;
   /** Last ACC result (R22 / R23), null while ACC is off. */
   lastLongitudinal: LongitudinalResult | null = null;
+  /** UC10: the in-lane hazard detected this tick (IR26). */
+  hazard: Hazard | null = null;
   /** Last UC9 look-ahead result. */
   curve: { tooSharp: boolean; radiusFt: number; lateralAccel: number; atS: number } | null = null;
   private readonly accelHistory = new Map<number, Sample[]>();
@@ -219,6 +222,29 @@ export class DriverAssistSystem {
       Math.min(limit, Math.sign(shift) * LARGE_VEHICLE_OFFSET_FT),
     );
     return this.targetOffset;
+  }
+
+  /**
+   * UC10 detectHazard() (IR26): the nearest debris, pothole, stopped vehicle or pedestrian
+   * in the ego lane within the selection distance (R4.1, no-lead size factor).
+   */
+  detectHazard(
+    t: number,
+    ego: { s: number; y: number; speed: number },
+    road: Road,
+    hazards: readonly Hazard[],
+  ): Hazard | null {
+    const lane = road.laneIdAt(ego.y);
+    const reach = this.speedManagement.selectionDistance(ego.speed, null);
+    let best: Hazard | null = null;
+    for (const h of hazards) {
+      const ahead = h.s - ego.s;
+      if (h.laneId === lane && ahead >= 0 && ahead <= reach + EPS && (!best || h.s < best.s))
+        best = h;
+    }
+    if (best && best.detectedAt === null) best.detectedAt = t;
+    this.hazard = best;
+    return best;
   }
 
   /** UC9 navigateCurve(): is a curve within the next 5 s of travel too sharp (A-14)? */
@@ -349,7 +375,7 @@ export class DriverAssistSystem {
     return this.lastLongitudinal;
   }
 
-  /** Class A causes found this tick (R28.1). Hazards, faults and ODD exit follow in M4/M5. */
+  /** Class A causes the DriverAssistSystem found this tick (R28.1); HFDS adds ODD, path and FCW causes. */
   classACauses(): ClassACause[] {
     const out: ClassACause[] = [];
     const lon = this.lastLongitudinal;
@@ -363,6 +389,13 @@ export class DriverAssistSystem {
           aReq === null || !Number.isFinite(aReq)
             ? `gap to vehicle ${lead?.vehicleId ?? '?'} inside the safety cushion`
             : `a_req ${aReq.toFixed(1)} ft/s² > maxBrakingDecel ${this.speedManagement.maxBrakingDecel} ft/s²`,
+      });
+    }
+    if (this.hazard) {
+      out.push({
+        reason: WarningReason.HAZARD_IN_LANE,
+        reqs: ['IR26', 'UC10', 'R28.1'],
+        detail: `${this.hazard.type} in lane ${this.hazard.laneId} ahead; HFDS does not steer around objects`,
       });
     }
     if (this.curve?.tooSharp) {

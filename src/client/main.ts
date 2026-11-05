@@ -8,6 +8,7 @@ import type { LogEntry, LogFile } from '../shared/domain';
 import type { EngineMessage, Snapshot } from '../shared/protocol';
 import { WorkerTransport } from '../transport/worker-transport';
 import type { Transport } from '../transport/transport';
+import { initAudio } from './audio';
 import { initKeyboard } from './input';
 import { RoadRenderer } from './renderer/renderer';
 import { renderCaption, renderCaptionError, type ScenarioInfo } from './ui/caption-panel';
@@ -41,6 +42,7 @@ async function init(): Promise<void> {
   const captionBody = byId('caption-body');
   const cluster = initCluster(byId('cluster'));
   const checklist = initChecklist(byId('checklist-body'));
+  const audio = initAudio(byId<HTMLButtonElement>('btn-sound'));
   const log = initEventLogPanel(byId<HTMLOListElement>('event-log-body'));
   const session = initSessionControls((m) => transport.send(m));
   const driverPanel = initDriverPanel(byId('driver-body'), (action) =>
@@ -64,6 +66,7 @@ async function init(): Promise<void> {
         renderer?.push(msg.snapshot);
         cluster.sync(msg.snapshot);
         checklist.sync(msg.snapshot);
+        audio.sync(msg.snapshot.hmi);
         session.sync(msg.snapshot);
         driverPanel.sync(msg.snapshot);
         break;

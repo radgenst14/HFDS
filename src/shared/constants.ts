@@ -250,6 +250,8 @@ export const LANE_INTRUSION_PREDICTION_S = 1.0;
 export const SCRIPTED_STEER_GAIN_PER_FT = 0.5;
 /** A-53: scripted driver `steerToLaneId` ends within this lateral error (ft). */
 export const SCRIPTED_STEER_DONE_FT = 0.3;
+/** A-55: SR1.3 stub: the OnStar advisor shows "connecting" this long after the stop, then "connected" (s). */
+export const ONSTAR_CONNECT_S = 3;
 /** A-39: EventLog.capacity; beyond it the oldest entries are dropped (EventLog.count keeps the total). */
 export const EVENT_LOG_CAPACITY = 10_000;
 
