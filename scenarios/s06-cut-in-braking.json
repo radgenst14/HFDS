@@ -1,7 +1,7 @@
 {
   "id": "s06-cut-in-braking",
   "name": "Cut-ins: brake within capability, then reclaim warning",
-  "description": "A car cuts in at a safe distance and HFDS slows smoothly. A second, much slower car cuts in too close; the required deceleration exceeds the braking limit and HFDS issues a Class A reclaim warning. The driver brakes.",
+  "description": "A car cuts in at a safe distance and HFDS coasts to match it. A second, much slower car cuts in too close; the required deceleration exceeds the braking limit and HFDS issues a Class A reclaim warning while the Forward Collision System brakes. The driver brakes.",
   "customerScenario": null,
   "sequenceDiagram": null,
   "optional": false,
@@ -21,9 +21,9 @@
   "caption": {
     "summary": "R22 braking when a_req ≤ maxBrakingDecel; R23 reclaim warning when it is not.",
     "steps": [
-      "10 s: car from lane 3 cuts in ≈ 175 ft ahead at 55 mph → coasting / mild braking (R22).",
-      "30 s: car from lane 1 slows to 25 mph and cuts in ≈ 60 ft ahead → a_req far above 11.5 ft/s² → Class A (R23).",
-      "Light bar flashing red; HFDS does not accelerate (IR12).",
+      "10 s: car from lane 3 cuts in ≈ 175 ft ahead at 55 mph → coast to match it (R21, R22).",
+      "30 s: car from lane 1 slows to 35 mph and cuts in ≈ 60 ft ahead → a_req ≈ 18 ft/s², above 11.5 → Class A (R23).",
+      "Light bar flashing red; HFDS does not accelerate (IR12); the Forward Collision System brakes (A-25).",
       "31.5 s: driver brakes → HFDS and ACC disengage (IR15, R50)."
     ],
     "watchFor": [
@@ -60,7 +60,7 @@
   "environment": {
     "weather": "Clear",
     "lightCondition": "Day",
-    "roadMoisture": 0.0,
+    "roadMoisture": 0,
     "visibilityM": 1000
   },
   "ego": {
@@ -105,13 +105,13 @@
       "id": 2,
       "sizeClass": "Car",
       "laneId": 1,
-      "sFt": 300,
+      "sFt": 325,
       "speedMph": 55,
       "behavior": [
         {
           "t": 27,
           "action": "setSpeed",
-          "speedMph": 25,
+          "speedMph": 35,
           "decelFtps2": 15
         },
         {
@@ -126,12 +126,12 @@
   "hazards": [],
   "timeline": [
     {
-      "t": 2.0,
+      "t": 2,
       "kind": "driver",
       "action": "pressHfdsButton"
     },
     {
-      "t": 4.0,
+      "t": 4,
       "kind": "driver",
       "action": "setGrip",
       "args": {
@@ -145,11 +145,11 @@
       "action": "setBrake",
       "args": {
         "pressed": true,
-        "rate": 8.0
+        "rate": 8
       }
     },
     {
-      "t": 34.0,
+      "t": 34,
       "kind": "driver",
       "action": "setBrake",
       "args": {
