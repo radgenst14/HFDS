@@ -1,0 +1,127 @@
+{
+  "id": "s17-driver-camera-tamper",
+  "name": "Driver camera tampered with",
+  "description": "The driver camera is covered to fake attention. DATS detects tampering, treats it as loss of the attention system (single point of failure) and requests takeover. High severity blocks re-engagement until cleared.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": ["SR2", "SR5", "IR23", "R38.3", "UC15"],
+  "caption": {
+    "summary": "Camera tampering is detected (SR2) and handled as DATS loss (SR5).",
+    "steps": [
+      "12 s: Director 'tamper driver camera'.",
+      "Class A takeover; error E402 (high).",
+      "15 s: driver grips → control transferred.",
+      "Re-engagement blocked until the fault is cleared (IR23)."
+    ],
+    "watchFor": ["Checklist shows IR23 block."]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 60,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 12.0,
+      "kind": "inject",
+      "action": "tamperDriverCamera"
+    },
+    {
+      "t": 15.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    },
+    {
+      "t": 45.0,
+      "kind": "inject",
+      "action": "clearAllFaults"
+    }
+  ],
+  "expect": [
+    {
+      "check": "logged",
+      "reqs": ["SR2"],
+      "by": 12.1,
+      "type": "error",
+      "code": "E402"
+    },
+    {
+      "check": "warningActive",
+      "reqs": ["SR5"],
+      "by": 12.1,
+      "cls": "A",
+      "reason": "DATS_LOSS"
+    },
+    {
+      "check": "available",
+      "reqs": ["IR23"],
+      "to": 44.9,
+      "value": false,
+      "from": 16
+    }
+  ]
+}

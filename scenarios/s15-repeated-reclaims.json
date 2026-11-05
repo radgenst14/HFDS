@@ -1,0 +1,196 @@
+{
+  "id": "s15-repeated-reclaims",
+  "name": "Three reclaim requests in five minutes → deactivation",
+  "description": "Three short lane-marking dropouts each cause a Class A reclaim request. After the third within five minutes, HFDS deactivates and applies a 30 s reactivation buffer.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": ["R41", "R41.1", "R41.2", "R38.4"],
+  "caption": {
+    "summary": "Repeated system-initiated reclaims trigger R41.",
+    "steps": [
+      "10 s, 40 s, 70 s: markings drop out briefly → Class A each time; the driver takes over and re-engages after the 20 s recheck.",
+      "70 s: third reclaim; 71 s the driver takes over → HFDS deactivates and 'HFDS available' stays off for 30 s (R41.2)."
+    ],
+    "watchFor": ["Reclaim counter (n / 3 in the last 5 min)."]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 120,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 3,
+    "laneWidthM": 3.66,
+    "rightShoulder": true,
+    "medianBarrier": true,
+    "segments": []
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 2,
+    "speedMph": 65,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 10,
+      "kind": "inject",
+      "action": "dropLaneMarkings",
+      "args": {
+        "durationS": 2
+      }
+    },
+    {
+      "t": 11,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    },
+    {
+      "t": 13,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 32,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 40,
+      "kind": "inject",
+      "action": "dropLaneMarkings",
+      "args": {
+        "durationS": 2
+      }
+    },
+    {
+      "t": 41,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    },
+    {
+      "t": 43,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    },
+    {
+      "t": 62,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 70,
+      "kind": "inject",
+      "action": "dropLaneMarkings",
+      "args": {
+        "durationS": 2
+      }
+    },
+    {
+      "t": 71,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "mode",
+      "reqs": [],
+      "by": 33.5,
+      "value": "HANDS_FREE"
+    },
+    {
+      "check": "mode",
+      "reqs": [],
+      "by": 63.5,
+      "value": "HANDS_FREE"
+    },
+    {
+      "check": "logged",
+      "reqs": ["R41.1"],
+      "by": 70.1,
+      "type": "disengagement",
+      "contains": "R41"
+    },
+    {
+      "check": "available",
+      "reqs": ["R41.2"],
+      "to": 100.9,
+      "value": false,
+      "from": 71.1
+    },
+    {
+      "check": "available",
+      "reqs": ["R41.2"],
+      "by": 102,
+      "value": true
+    }
+  ]
+}

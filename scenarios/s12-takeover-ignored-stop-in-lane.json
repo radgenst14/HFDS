@@ -1,0 +1,121 @@
+{
+  "id": "s12-takeover-ignored-stop-in-lane",
+  "name": "Takeover request ignored → controlled stop in lane",
+  "description": "Lane markings disappear on a two-lane road with no right shoulder. HFDS issues a Class A takeover request; the driver does not respond for 30 s, so HFDS stops in its lane with hazards on and calls OnStar.",
+  "customerScenario": null,
+  "sequenceDiagram": null,
+  "optional": false,
+  "requirements": ["IR2", "IR14", "SR7", "SR1", "SR1.1", "SR1.1.1", "SR1.2", "SR1.3", "IR13"],
+  "caption": {
+    "summary": "SR7 takeover period expires; with no reachable shoulder, the stop happens in the current lane (SR1.1).",
+    "steps": [
+      "Markings fade at 2,000 ft → Class A (IR2, IR14).",
+      "Coast and hold lane for 30 s (IR13).",
+      "No takeover → minimal risk maneuver (SR7).",
+      "No shoulder → controlled stop in lane, hazards, OnStar (SR1.1–SR1.3)."
+    ],
+    "watchFor": ["30 s takeover countdown in the HMI."]
+  },
+  "seed": 1000,
+  "simDate": "2026-11-04",
+  "durationS": 90,
+  "vehicleConfig": {
+    "maxBrakingDecelFtps2": 11.5,
+    "forwardSensorRangeFt": 800,
+    "hasHUD": true,
+    "hasLightBar": true,
+    "secondAlertMode": "seat",
+    "trailerAttached": false,
+    "trailerCapable": true
+  },
+  "map": {
+    "version": "MI-I96-2026.09",
+    "lastUpdated": "2026-09-15",
+    "enabled": true
+  },
+  "road": {
+    "roadType": "DividedHighway",
+    "lengthFt": 40000,
+    "travelLanes": 2,
+    "laneWidthM": 3.66,
+    "rightShoulder": false,
+    "medianBarrier": true,
+    "segments": [
+      {
+        "fromFt": 2000,
+        "toFt": 12000,
+        "markings": {
+          "left": false,
+          "right": false
+        }
+      }
+    ]
+  },
+  "environment": {
+    "weather": "Clear",
+    "lightCondition": "Day",
+    "roadMoisture": 0.0,
+    "visibilityM": 1000
+  },
+  "ego": {
+    "laneId": 1,
+    "speedMph": 60,
+    "setSpeedMph": null,
+    "gapSetting": "Near"
+  },
+  "driver": {
+    "eyesOnRoad": true,
+    "grip": {
+      "L": true,
+      "R": true,
+      "TOP": false,
+      "BOTTOM": false
+    }
+  },
+  "sensorOverrides": {},
+  "traffic": [],
+  "hazards": [],
+  "timeline": [
+    {
+      "t": 2.0,
+      "kind": "driver",
+      "action": "pressHfdsButton"
+    },
+    {
+      "t": 4.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": false,
+        "R": false
+      }
+    }
+  ],
+  "expect": [
+    {
+      "check": "warningActive",
+      "reqs": ["IR2", "IR14"],
+      "cls": "A",
+      "reason": "ODD_EXIT",
+      "whenEgoSFt": 2000
+    },
+    {
+      "check": "mode",
+      "reqs": ["SR7"],
+      "after": "classA+30.1",
+      "value": "MINIMAL_RISK_MANEUVER"
+    },
+    {
+      "check": "stoppedInLane",
+      "reqs": ["SR1.1"],
+      "laneId": 1
+    },
+    {
+      "check": "hmi",
+      "reqs": ["SR1.2"],
+      "after": "mrm",
+      "field": "hazardLights",
+      "value": true
+    }
+  ]
+}

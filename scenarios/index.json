@@ -1,0 +1,144 @@
+{
+  "scenarios": [
+    {
+      "id": "s00-sandbox",
+      "name": "Sandbox — free drive",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s00-sandbox.json"
+    },
+    {
+      "id": "s01-activation-success",
+      "name": "Activate HFDS on a supported highway",
+      "customerScenario": 1,
+      "optional": false,
+      "file": "s01-activation-success.json"
+    },
+    {
+      "id": "s02-rejected-outdated-map",
+      "name": "Activation rejected: outdated LiDAR map",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s02-rejected-outdated-map.json"
+    },
+    {
+      "id": "s03-rejected-conditions",
+      "name": "Activation rejected: outside the ODD (rain)",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s03-rejected-conditions.json"
+    },
+    {
+      "id": "s04-lane-keeping-curves-trucks",
+      "name": "Lane keeping: curves, a passing semi, and a curve that is too sharp",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s04-lane-keeping-curves-trucks.json"
+    },
+    {
+      "id": "s05-follow-lead-vehicle",
+      "name": "Follow a lead vehicle: closing, coast, match, resume, follow a truck",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s05-follow-lead-vehicle.json"
+    },
+    {
+      "id": "s06-cut-in-braking",
+      "name": "Cut-ins: brake within capability, then reclaim warning",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s06-cut-in-braking.json"
+    },
+    {
+      "id": "s07-sensor-fault-redundant",
+      "name": "Sensor faults covered by redundant sources",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s07-sensor-fault-redundant.json"
+    },
+    {
+      "id": "s08-sensor-fault-takeover",
+      "name": "Sensor fault without redundancy: takeover and re-engagement rules",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s08-sensor-fault-takeover.json"
+    },
+    {
+      "id": "s09-inattention-ignored",
+      "name": "Driver ignores every attention warning → controlled stop on the shoulder",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s09-inattention-ignored.json"
+    },
+    {
+      "id": "s10-inattention-recovered",
+      "name": "Driver looks back during the second alert",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s10-inattention-recovered.json"
+    },
+    {
+      "id": "s11-road-hazard-takeover",
+      "name": "Road hazard: driver takes over",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s11-road-hazard-takeover.json"
+    },
+    {
+      "id": "s12-takeover-ignored-stop-in-lane",
+      "name": "Takeover request ignored → controlled stop in lane",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s12-takeover-ignored-stop-in-lane.json"
+    },
+    {
+      "id": "s13-driver-brakes",
+      "name": "Driver brakes to regain control",
+      "customerScenario": 4,
+      "optional": false,
+      "file": "s13-driver-brakes.json"
+    },
+    {
+      "id": "s14-driver-steers-resume",
+      "name": "Driver steers briefly, HFDS resumes",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s14-driver-steers-resume.json"
+    },
+    {
+      "id": "s15-repeated-reclaims",
+      "name": "Three reclaim requests in five minutes → deactivation",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s15-repeated-reclaims.json"
+    },
+    {
+      "id": "s16-map-mismatch-construction",
+      "name": "Unmapped construction zone (map mismatch)",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s16-map-mismatch-construction.json"
+    },
+    {
+      "id": "s17-driver-camera-tamper",
+      "name": "Driver camera tampered with",
+      "customerScenario": null,
+      "optional": false,
+      "file": "s17-driver-camera-tamper.json"
+    },
+    {
+      "id": "s18-collision-onstar",
+      "name": "Collision / airbag deployment → OnStar call",
+      "customerScenario": null,
+      "optional": true,
+      "file": "s18-collision-onstar.json"
+    },
+    {
+      "id": "s19-unauthorized-command",
+      "name": "Unauthorized external command rejected",
+      "customerScenario": null,
+      "optional": true,
+      "file": "s19-unauthorized-command.json"
+    }
+  ]
+}
