@@ -27,6 +27,8 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:run
+      # Doc 17 M6: fail on SIM requirements with no test or expectation, and on a stale matrix.
+      - run: npm run trace:check
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e

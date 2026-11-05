@@ -10,8 +10,8 @@
  *   npm run trace                     # Markdown matrix to stdout
  *   npm run trace -- --out docs/trace-matrix.md
  *   npm run trace -- --strict         # exit 1 if a SIM requirement has no test/expectation
- *
- * M0 version: complete matrix, but CI runs --strict only from M6 onward.
+ *   npm run trace:check               # CI (M6): --strict, and docs/trace-matrix.md is current
+ *   npm run trace:write               # regenerate docs/trace-matrix.md
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -117,7 +117,15 @@ function main(argv: string[]): void {
   const { markdown, uncoveredSim } = buildMatrix();
   const outIdx = argv.indexOf('--out');
   const out = outIdx >= 0 ? argv[outIdx + 1] : undefined;
-  if (out) writeFileSync(join(ROOT, out), markdown);
+  const checkIdx = argv.indexOf('--check');
+  const check = checkIdx >= 0 ? argv[checkIdx + 1] : undefined;
+  if (check) {
+    const committed = readFileSync(join(ROOT, check), 'utf8').replace(/\r\n/g, '\n');
+    if (committed !== markdown) {
+      console.error(`${check} is out of date. Run \`npm run trace:write\` and commit it.`);
+      process.exit(1);
+    }
+  } else if (out) writeFileSync(join(ROOT, out), markdown);
   else process.stdout.write(markdown);
   if (argv.includes('--strict') && uncoveredSim.length > 0) {
     console.error(

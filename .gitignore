@@ -11,3 +11,5 @@ coverage/
 
 # Personal Claude Code settings (permissions)
 .claude/settings.local.json
+# npm run screenshots output (SRS 5.2)
+docs/screenshots/
