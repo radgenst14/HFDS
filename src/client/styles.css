@@ -125,10 +125,10 @@ body {
 .bottom-drawer {
   grid-area: bottom;
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 3fr 2fr;
   gap: 8px;
   padding: 8px;
-  max-height: 280px;
+  max-height: 320px;
 }
 
 .panel {
@@ -560,4 +560,128 @@ button.active {
 
 .muted {
   color: var(--muted);
+}
+
+/* M6: event log filter and requirement trace panel (doc 15 B6 region 6) */
+.log-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.log-filter input[type='search'] {
+  flex: 1 1 180px;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: #22303c;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.log-filter select {
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.trace-summary {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.trace-section {
+  --sec: #9ca3af;
+  border-left: 3px solid var(--sec);
+  padding-left: 6px;
+  margin-bottom: 6px;
+}
+
+/* One hue per SRS section; the heading text always names the section too. */
+.trace-section[data-section='3.1.1'] {
+  --sec: #60a5fa;
+}
+.trace-section[data-section='3.1.2'] {
+  --sec: #34d399;
+}
+.trace-section[data-section='3.1.3'] {
+  --sec: #a78bfa;
+}
+.trace-section[data-section='3.1.4'] {
+  --sec: #fbbf24;
+}
+.trace-section[data-section='3.1.5'] {
+  --sec: #f87171;
+}
+.trace-section[data-section='3.1.6'] {
+  --sec: #22d3ee;
+}
+.trace-section[data-section='3.1.7'] {
+  --sec: #fb923c;
+}
+.trace-section[data-section='3.2'] {
+  --sec: #f472b6;
+}
+.trace-section[data-section='3.3'] {
+  --sec: #a3e635;
+}
+.trace-section[data-section='3.4'] {
+  --sec: #cbd5e1;
+}
+
+.trace-heading {
+  margin: 0 0 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.trace-count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.trace-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.trace-chip {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 1px 5px;
+  border: 1px solid var(--sec);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.trace-chip.exercised {
+  background: var(--sec);
+  color: #0b1015;
+  font-weight: 600;
+}
+
+.trace-chip.listed {
+  background: transparent;
+  color: var(--text);
+  border-style: dashed;
+}
+
+.trace-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.trace-doc {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.trace-doc p {
+  margin: 4px 0 0;
 }

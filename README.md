@@ -1,52 +1,79 @@
-# HFDS Prototype — Claude Project Kit
+# HFDS Prototype — CSE 435 Group 3
 
-Everything needed to start a Claude project that builds the CSE 435 Group 3 Hands-Free Driving System prototype. This kit **does not contain the prototype**. It gathers the SRS, the technical stack, and every derived decision into one place so the build can be done completely and accurately.
+A browser-based simulation of the Group 3 **Hands-Free Driving System (HFDS)** Software Requirements Specification (SRS). It shows the team's reading of the SRS to the customer (Andrew Davenport, GM) and the instructor (Dr. Betty H.C. Cheng, MSU).
 
-Built from: *HFDS – Group 3 SRS* (uploaded 2026-11-04) and the *Prototype Technical Stack* doc (2026-11-04).
+> This is a simulation for requirements validation, not vehicle software. The driver always has authority (IR25), and every failure hands control back to the driver (IR24).
 
-## Set up the project
+## How to run (SRS Section 5.1)
 
-**Option A — Claude project on claude.ai**
-1. Create a project, e.g. "HFDS Prototype".
-2. Paste the body of `00_PROJECT_INSTRUCTIONS.md` into the project's custom instructions.
-3. Upload everything in `knowledge/` as project knowledge: the ten `.md` files, `requirements.json`, the 21 files in `knowledge/scenarios/`, and the 14 PNGs in `knowledge/diagrams/`. If file count is a problem, the PNGs are optional; their content is transcribed in `18_diagram_index.md` and `12_domain_model.md`.
-4. Start a chat and send **Prompt 1** from `01_KICKOFF_PROMPT.md`. Send the milestone prompts one at a time after that.
+**Live:** `https://www.egr.msu.edu/cse435/<groupname>/prototype/`. The group name is still open question Q-05; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-**Option B — Claude Code on the repo**
-1. Create the repo; put `CLAUDE.md` at the root and copy `knowledge/` to `docs/`.
-2. Send Prompt 1 from `01_KICKOFF_PROMPT.md`.
+- **Browsers:** current Chrome, Firefox, Edge or Safari. A desktop or laptop is recommended (the layout targets 1280 px or wider and works at 1024 px).
+- **No plugins and no account.** The page is static: it makes no network calls after loading, so it keeps working offline once it has loaded.
+- **Pick a scenario** in the top bar. Each preset plays its scripted timeline; you can also drive by hand.
+- **Shareable links:** `#scenario=<id>` opens a preset, and `#scenario=<id>&t=<seconds>` opens it paused at that moment. **Copy link** includes the time while the simulation is paused.
 
-## Before the build starts: resolve these first
+### Keyboard
 
-From `knowledge/16_open_issues_and_assumptions.md`:
-- **Q-01: the customer's scenario list.** The SRS only names Scenario 1 (activation) and Scenario 4 (driver brakes). The course requires a preset for every customer scenario.
-- **Q-02: zone boundaries and safety cushion.** The SRS never defines them. The kit's defaults reproduce the SRS worked example, but the team should confirm them.
-- **Q-04: which prototype version is due next (v1 or v2).**
-- **Q-05: EGR group name and GitHub repo.**
-
-Everything else has a working default, so the build can proceed.
-
-## Contents
-
-| File | What it is |
+| Key | Action |
 |---|---|
-| `00_PROJECT_INSTRUCTIONS.md` | Custom instructions for the project: role, precedence of sources, non-negotiable rules, working style |
-| `01_KICKOFF_PROMPT.md` | First message plus one prompt per milestone (M1–M6) and useful follow-ups |
-| `CLAUDE.md` | Same instructions, formatted for the repo root (Claude Code) |
-| `knowledge/10_requirements_catalog.md` | All 177 requirement items from SRS §3, verbatim, each mapped to how the prototype shows and tests it and to its scenarios |
-| `knowledge/requirements.json` | Machine-readable copy of the catalog, used by the trace-matrix script |
-| `knowledge/11_srs_overview_and_use_cases.md` | Scope, definitions, interfaces, functions, use cases UC1–UC21, sequence diagram → scenario map |
-| `knowledge/12_domain_model.md` | Every class, attribute, operation and enum, proposed shapes for the classes the SRS left empty, and the repo file for each |
-| `knowledge/13_behavior_spec.md` | Constants (SRS and assumed), formulas with 9 test vectors, following zones, lateral control, availability, the derived HFDS state machine, light bar mapping, Class A causes, MRM, error-code catalog, input arbitration, tick order |
-| `knowledge/14_scenarios.md` | Scenario catalog, JSON schema, timeline and Director vocabulary, expectation checks |
-| `knowledge/scenarios/` | 20 draft presets (`s00`–`s19`) plus `index.json`. Each one is a demo, a script and an acceptance test |
-| `knowledge/15_technical_stack.md` | The stack doc in full (Part A) plus the HFDS adaptation: protocol, snapshot, repo layout, UI layout, keyboard (Part B) |
-| `knowledge/16_open_issues_and_assumptions.md` | 33 SRS issues with resolutions, 30 prototype assumptions, 9 open questions |
-| `knowledge/17_build_plan.md` | Milestones M0–M6 with definitions of done, test inventory, SRS Section 5 deliverables |
-| `knowledge/18_diagram_index.md` | Transcriptions of all 8 sequence diagrams and an index of the figures |
-| `knowledge/diagrams/` | The 14 SRS figures, extracted and placed on white backgrounds |
-| `knowledge/19_srs_source_text.md` | The full SRS text, kept only for checking exact wording |
+| `H` | HFDS button |
+| `Space` (hold) | Brake |
+| `↑` (hold) | Throttle |
+| `←` / `→` (hold) | Steer |
+| `G` | Toggle both-hand grip |
+| `L` | Toggle eyes on road |
+| `P` | Pause / play |
+| `.` | Step one tick (0.05 s) while paused |
+| `1`–`4` | Time scale 0.5× / 1× / 2× / 4× |
 
-## SRS fixes worth making now
+### What is on screen
 
-Found while building the kit (details in doc 16): IR29 is used twice; the braking-distance sentence in R4.1.1 is garbled; zone boundaries and the safety cushion are undefined; SUV is missing from the `VehicleSizeClass` enum; IR3 conflicts with the R29–R31 escalation; IR5.6/IR5.7 conflict with SR4.4 redundancy; the takeover window in the SD4 diagram may read 3 s against SR7's 30 s; Section 4 has no state diagram; and Section 6 has only a placeholder reference.
+- **Left column:** the scenario caption (summary, steps, what to watch for), the availability checklist with SRS IDs, sensor statuses and active error codes.
+- **Centre:** the top-down road view (lanes, traffic, hazards, blue path, following zones) and the instrument cluster (light bar with a text label, cluster message, HFDS state, speeds, countdowns, indicators).
+- **Right column:** the Driver panel (green edge) and the Director panel (amber edge). The Director panel injects faults, weather, hazards, traffic events, external commands and ignition cycles.
+- **Bottom:** the event log (R45). Filter it by text, SRS ID or entry type. Next to it is the requirement trace panel: the SRS IDs this run has exercised, grouped and colour-coded by SRS section. Click an ID to filter the log by it.
+
+The trace panel counts an ID as *exercised* once the engine logs an event tagged with that ID (or with one of its sub-items). IDs the scenario lists but has not reached yet are shown outlined.
+
+## Scenarios
+
+The presets live in `public/scenarios/` (S00 sandbox, S01–S17, and optional S18 collision → OnStar and S19 unauthorized external command). Each preset's `expect` list is an acceptance test that runs in Vitest. The scenario format is in `docs/14_scenarios.md`.
+
+## Development
+
+Requires Node.js LTS.
+
+```bash
+npm ci
+```
+
+```bash
+npm run dev
+```
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server on http://localhost:5173 |
+| `npm run build` | Type-check and build to `dist/` (relative paths, works under any subpath) |
+| `npm run preview` | Serve the build on http://localhost:4173 |
+| `npm test` / `npm run test:run` | Vitest: engine rules, every preset's expectations, replay determinism, pure client logic |
+| `npm run e2e` | Playwright end-to-end tests against the production build |
+| `npm run lint` / `npm run format:check` | ESLint (including the engine purity rules) and Prettier |
+| `npm run trace:write` | Regenerate `docs/trace-matrix.md` (requirement → scenario/test matrix, the SRS appendix) |
+| `npm run trace:check` | CI check: fails if a SIM requirement has no test or expectation, or if the matrix is stale |
+| `npm run screenshots` | Capture every preset at its key moments into `docs/screenshots/` for SRS Section 5.2 (git-ignored) |
+
+### Architecture
+
+- `src/engine/` is a pure, deterministic simulation: a fixed 20 Hz tick, a seeded RNG, and no DOM, timers or wall clock. It runs in a Web Worker (`worker.ts`).
+- `src/client/` renders snapshots (PixiJS road view plus HTML panels) and sends intents through the `Transport` interface. It never decides HFDS outcomes.
+- `src/shared/` holds the domain enums, the constants (each with its SRS or assumption source), the protocol and the scenario schema.
+
+### Traceability
+
+Requirement IDs appear in code comments, test names (`[R30.4]`), every event-log entry and the trace panel. Assumptions (A-xx), SRS defects (ISSUE-xx) and open questions (Q-xx) are in `docs/16_open_issues_and_assumptions.md`. The project rules are in `CLAUDE.md`.
+
+## Deployment
+
+On every push to `main`, GitHub Actions runs lint, format, the unit tests, the trace check, the build and the e2e tests. It then publishes `dist/` to the `deploy` branch. The EGR server pulls that branch; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

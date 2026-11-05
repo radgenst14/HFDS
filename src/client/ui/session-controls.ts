@@ -1,9 +1,11 @@
 /**
  * Top bar session controls (doc 15 B6 region 1): play/pause, step, time scale, reset,
- * shareable link and "Export log". Sends session messages only.
+ * shareable link and "Export log". Sends session messages only. While paused, the copied
+ * link also carries the sim time (`#scenario=<id>&t=<s>`, doc 17 M6).
  */
 import { TIME_SCALES, type TimeScale } from '../../shared/constants';
 import type { ClientMessage, Snapshot } from '../../shared/protocol';
+import { shareLink } from './scenario-picker';
 
 export interface SessionControls {
   sync(snapshot: Snapshot): void;
@@ -21,9 +23,11 @@ export function initSessionControls(send: (msg: ClientMessage) => void): Session
   const shareBtn = $<HTMLButtonElement>('btn-share');
   const exportBtn = $<HTMLButtonElement>('btn-export-log');
   let paused = false;
+  let latest: Snapshot | null = null;
 
   const controls: SessionControls = {
     sync(s) {
+      latest = s;
       paused = s.paused;
       playPause.textContent = s.paused ? 'Play' : 'Pause';
       playPause.setAttribute('aria-pressed', String(s.paused));
@@ -50,8 +54,13 @@ export function initSessionControls(send: (msg: ClientMessage) => void): Session
     if (scale !== undefined) controls.setTimeScale(scale);
   });
   resetBtn.addEventListener('click', () => send({ type: 'reset' }));
+  shareBtn.title =
+    'Copy a link to this scenario. While paused, the link opens the scenario at this moment.';
   shareBtn.addEventListener('click', () => {
-    void navigator.clipboard?.writeText(window.location.href).then(
+    const link = latest
+      ? shareLink(latest.scenarioId, latest.paused ? latest.simTime : null)
+      : window.location.href;
+    void navigator.clipboard?.writeText(link).then(
       () => (shareBtn.textContent = 'Link copied'),
       () => (shareBtn.textContent = 'Copy failed'),
     );

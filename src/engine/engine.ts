@@ -40,7 +40,7 @@ import type { DirectorAction, DriverAction, Snapshot } from '../shared/protocol'
 import { TimelineEventSchema, type Scenario } from '../shared/scenario-schema';
 import { simTimeOf } from './clock';
 import { canonicalJson, hashString } from './hash';
-import { HFDS, type Anchors } from './hfds/hfds';
+import { HFDS, type Anchors, type ExternalCommand } from './hfds/hfds';
 import type { EventLog } from './hfds/event-log';
 import type { VehicleControl } from './hfds/vehicle-control';
 import { Rng } from './rng';
@@ -319,7 +319,7 @@ export class Engine {
     if (action.kind === 'setGap') sm.setGap(action.gapSetting); // A-08
   }
 
-  /** Director injections (doc 14). HFDS-reaction injections not listed here arrive M4–M6. */
+  /** Director injections (doc 14 vocabulary). */
   private applyInject(
     kind: DirectorAction['kind'],
     args: Record<string, unknown>,
@@ -439,11 +439,25 @@ export class Engine {
       case 'fcwEscalation':
         hfds.functions.fcwEscalated = true;
         return info('Forward collision warning escalated to a takeover request', ['IR5.10']);
-      default:
-        return info(
-          `Injection "${kind}" received; its HFDS effect is not simulated yet (M4–M6)`,
-          [],
+      case 'collision': {
+        const a = args as { airbag: boolean };
+        info(`Collision${a.airbag ? ' with airbag deployment' : ''} (simulated event)`, ['SR8']);
+        hfds.detectCollision(t, a.airbag); // SR8 (logged by HFDS)
+        return;
+      }
+      case 'externalCommand': {
+        const a = args as unknown as ExternalCommand;
+        info(
+          `${a.authenticated ? 'Authenticated' : 'Unauthenticated'} external command ` +
+            `"${a.kind} ${a.value}" arrives over a network (simulated)`,
+          ['IR19'],
         );
+        hfds.externalCommand(t, a); // IR18, IR19, IR21, SR9 (logged by HFDS)
+        return;
+      }
+      default:
+        // validateClientAction and the scenario schema only admit the doc 14 vocabulary.
+        return info(`Injection "${kind}" has no simulated effect`, []);
     }
   }
 

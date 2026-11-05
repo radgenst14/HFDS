@@ -1,22 +1,28 @@
 {
   "id": "s19-unauthorized-command",
   "name": "Unauthorized external command rejected",
-  "description": "An unauthenticated command arrives over an external network (simulated). Vehicle Control rejects it and the attempt is logged.",
+  "description": "Commands arrive over an external network (simulated). Vehicle Control rejects an unauthenticated command and any direct actuation command from outside the car; an authenticated service provider's set-speed request is applied by the Driver Assist System. Every attempt is logged.",
   "customerScenario": null,
   "sequenceDiagram": null,
   "optional": true,
   "requirements": ["IR18", "IR19", "IR21", "SR9"],
   "caption": {
-    "summary": "Command-source authentication (IR18, IR19). Illustrative only.",
+    "summary": "Command-source authentication (IR18, IR19). Illustrative only: no real network or cryptography (A-62).",
     "steps": [
-      "10 s: Director injects an unauthenticated 'accelerate' command from an external source.",
-      "Rejected; vehicle behavior unchanged; log entry."
+      "2 s: the driver presses the HFDS button; 4 s: hands off the wheel.",
+      "10 s: an unauthenticated 'accelerate' command arrives from an external network. It is rejected (IR19) and logged; the speed does not change.",
+      "13 s: the same command arrives while an authenticated service provider is connected. Vehicle Control still rejects it, because only the in-car Driver Assist System or the driver may steer, accelerate or brake (IR18).",
+      "16 s: the authenticated provider requests a 60 mph set speed. The Driver Assist System applies it, and the car slows to 60 mph."
     ],
-    "watchFor": ["Speed unchanged."]
+    "watchFor": [
+      "Speed unchanged after each rejected command.",
+      "Rejection warnings in the event log, tagged IR18, IR19, IR21 and SR9.",
+      "Set speed changes to 60 mph at 16 s."
+    ]
   },
   "seed": 1000,
   "simDate": "2026-11-04",
-  "durationS": 20,
+  "durationS": 26,
   "vehicleConfig": {
     "maxBrakingDecelFtps2": 11.5,
     "forwardSensorRangeFt": 800,
@@ -88,6 +94,26 @@
         "value": 5.0,
         "authenticated": false
       }
+    },
+    {
+      "t": 13.0,
+      "kind": "inject",
+      "action": "externalCommand",
+      "args": {
+        "kind": "accelerate",
+        "value": 5.0,
+        "authenticated": true
+      }
+    },
+    {
+      "t": 16.0,
+      "kind": "inject",
+      "action": "externalCommand",
+      "args": {
+        "kind": "setSpeed",
+        "value": 60,
+        "authenticated": true
+      }
     }
   ],
   "expect": [
@@ -103,6 +129,48 @@
       "reqs": ["IR18"],
       "at": 11.0,
       "approx": 65,
+      "tol": 1.0
+    },
+    {
+      "check": "logged",
+      "reqs": ["IR19", "IR21", "SR9"],
+      "by": 10.1,
+      "type": "warning",
+      "contains": "no authenticated service provider"
+    },
+    {
+      "check": "logged",
+      "reqs": ["IR18"],
+      "by": 13.1,
+      "type": "warning",
+      "contains": "in-car Driver Assist System"
+    },
+    {
+      "check": "speedMph",
+      "reqs": ["IR18"],
+      "at": 15.0,
+      "approx": 65,
+      "tol": 1.0
+    },
+    {
+      "check": "setSpeedMph",
+      "reqs": ["IR19"],
+      "by": 16.1,
+      "approx": 60,
+      "tol": 0.5
+    },
+    {
+      "check": "logged",
+      "reqs": ["IR19"],
+      "by": 16.1,
+      "type": "info",
+      "contains": "authenticated service provider accepted"
+    },
+    {
+      "check": "speedMph",
+      "reqs": ["IR19"],
+      "at": 25.0,
+      "approx": 60,
       "tol": 1.0
     }
   ]

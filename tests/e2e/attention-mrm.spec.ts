@@ -5,18 +5,22 @@ import { expect, test } from '@playwright/test';
 test('[R29][R32] S10: flashing green first alert, then solid green again after looking back', async ({
   page,
 }) => {
-  await page.goto('./#scenario=s10-inattention-recovered');
-  await page.locator('#time-scale').selectOption('4');
-  await expect(page.getByTestId('light-bar')).toHaveAttribute('data-state', 'FlashingGreen', {
-    timeout: 10_000,
-  });
+  // Time links seek the deterministic run, so the 2 s flashing-red window (43–45 s) cannot
+  // be missed under load the way it could at 4× real time.
+  const at = async (t: number) => {
+    await page.goto(`./#scenario=s10-inattention-recovered&t=${t}`);
+    await expect(page.locator('#app')).toHaveAttribute('data-sim-time', t.toFixed(2), {
+      timeout: 10_000,
+    });
+  };
+  const lightBar = page.getByTestId('light-bar');
+  await at(20);
+  await expect(lightBar).toHaveAttribute('data-state', 'FlashingGreen');
   await expect(page.getByTestId('cluster-message')).toHaveText('Pay attention to the road.');
-  await expect(page.getByTestId('light-bar')).toHaveAttribute('data-state', 'FlashingRed', {
-    timeout: 15_000,
-  });
-  await expect(page.getByTestId('light-bar')).toHaveAttribute('data-state', 'SolidGreen', {
-    timeout: 10_000,
-  });
+  await at(44);
+  await expect(lightBar).toHaveAttribute('data-state', 'FlashingRed');
+  await at(46);
+  await expect(lightBar).toHaveAttribute('data-state', 'SolidGreen');
 });
 
 test('[R39.1][R39.2] S14: pulsing blue while the driver steers, then HFDS resumes', async ({

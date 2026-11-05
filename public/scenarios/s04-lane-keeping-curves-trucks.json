@@ -27,7 +27,7 @@
       "2 s: engage.",
       "Gentle curve (radius 2,500 ft) at 1,500–4,000 ft: car stays centered (R18, R20).",
       "Passing the semi in lane 1: target offset shifts ~1 ft left, still inside the lane (UC12).",
-      "Before the 700 ft-radius curve at 6,000 ft: Class A 'Take steering control immediately' (UC9).",
+      "Before the 700 ft-radius curve at 6,000 ft: Class A \"Take steering control immediately.\" (UC9).",
       "Driver grips the wheel → control transferred (R35, R40)."
     ],
     "watchFor": [

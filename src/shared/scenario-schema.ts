@@ -228,7 +228,11 @@ const injectEvents = [
   ev(
     'inject',
     'externalCommand',
-    z.strictObject({ kind: z.string().min(1), value: z.unknown(), authenticated: z.boolean() }),
+    z.strictObject({
+      kind: z.enum(['steer', 'accelerate', 'brake', 'setSpeed']),
+      value: z.number(),
+      authenticated: z.boolean(),
+    }),
   ), // IR18, IR19
   ev('inject', 'ignitionCycle'), // IR10
   ev(

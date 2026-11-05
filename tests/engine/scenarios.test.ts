@@ -13,7 +13,7 @@ import { presetIds, readPreset } from './helpers';
  * run once the milestone that implements its behaviour is done; until then they are
  * listed as todo so the gap stays visible.
  */
-const CURRENT_MILESTONE = 5;
+const CURRENT_MILESTONE = 6;
 const PRESET_MILESTONE: Record<string, number> = {
   's01-activation-success': 2,
   's02-rejected-outdated-map': 2,

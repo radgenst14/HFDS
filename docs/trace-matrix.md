@@ -57,8 +57,8 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | R24 | SIM | S05 | S05 | tests/engine/acc.test.ts | tested |
 | R25 | SIM | S05 | S05 | tests/engine/acc.test.ts, tests/engine/constants.test.ts, tests/engine/formulas.test.ts | tested |
 | R27 | SIM | S09, S10 | — | tests/engine/attention.test.ts | tested |
-| R28 | SIM | S04, S06, S09, S11, S16 | S04, S06 | tests/engine/acc.test.ts, tests/engine/attention.test.ts, tests/engine/lane-keeping.test.ts, tests/engine/takeover.test.ts | tested |
-| R28.1 | SIM | S04, S06, S11, S16 | S04, S06 | tests/engine/acc.test.ts, tests/engine/lane-keeping.test.ts, tests/engine/takeover.test.ts | tested |
+| R28 | SIM | S04, S06, S09, S11, S16, S18 | S04, S06, S18 | tests/engine/acc.test.ts, tests/engine/attention.test.ts, tests/engine/emergency-security.test.ts, tests/engine/lane-keeping.test.ts, tests/engine/takeover.test.ts | tested |
+| R28.1 | SIM | S04, S06, S11, S16, S18 | S04, S06, S18 | tests/engine/acc.test.ts, tests/engine/emergency-security.test.ts, tests/engine/lane-keeping.test.ts, tests/engine/takeover.test.ts | tested |
 | R28.2 | SIM | S09 | — | tests/engine/attention.test.ts | tested |
 | R29 | SIM | S09, S10 | S09 | tests/e2e/attention-mrm.spec.ts, tests/engine/attention.test.ts, tests/engine/constants.test.ts | tested |
 | R29.1 | SIM | — | S09 | tests/engine/attention.test.ts | tested |
@@ -97,12 +97,12 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | R9.4 | SIM | — | — | tests/engine/faults.test.ts | tested |
 | R10 | SIM | S16 | S16 | tests/engine/faults.test.ts | tested |
 | R11 | STUB | S02 | S02 | tests/engine/availability.test.ts | tested |
-| R37 | LOG | S07, S08, S16 | S07, S16 | tests/e2e/director.spec.ts, tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
+| R37 | LOG | S07, S08, S16, S18 | S07, S16, S18 | tests/e2e/director.spec.ts, tests/engine/constants.test.ts, tests/engine/emergency-security.test.ts, tests/engine/faults.test.ts | tested |
 | R37.1 | LOG | — | — | tests/engine/faults.test.ts | tested |
 | R37.2 | LOG | — | — | tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
-| R38 | SIM | S08, S11, S15, S17 | S08, S11 | tests/engine/constants.test.ts, tests/engine/faults.test.ts, tests/engine/takeover.test.ts | tested |
+| R38 | SIM | S08, S11, S15, S17 | S08, S11 | tests/engine/constants.test.ts, tests/engine/emergency-security.test.ts, tests/engine/faults.test.ts, tests/engine/takeover.test.ts | tested |
 | R38.1 | SIM | — | — | tests/engine/faults.test.ts | tested |
-| R38.2 | SIM | S08 | S08 | tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
+| R38.2 | SIM | S08 | S08 | tests/engine/constants.test.ts, tests/engine/emergency-security.test.ts, tests/engine/faults.test.ts | tested |
 | R38.3 | SIM | S17 | — | tests/engine/faults.test.ts | tested |
 | R38.4 | SIM | S08, S11, S15 | S11 | tests/engine/constants.test.ts, tests/engine/takeover.test.ts | tested |
 | R41 | SIM | S15 | S15 | tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
@@ -111,18 +111,18 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | R44 | SIM | S00 | — | tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
 | R44.1 | SIM | — | — | tests/engine/faults.test.ts | tested |
 | R44.2 | SIM | — | — | tests/engine/constants.test.ts, tests/engine/faults.test.ts | tested |
-| R45 | LOG | S01, S07, S09, S11 | S01, S04, S11, S13 | tests/engine/attention.test.ts, tests/engine/faults.test.ts, tests/engine/invariants.test.ts, tests/engine/mode-machine.test.ts, tests/engine/scenarios.test.ts, tests/engine/takeover.test.ts, tests/engine/world.test.ts | tested |
+| R45 | LOG | S01, S07, S09, S11 | S01, S04, S11, S13 | tests/e2e/trace-seek.spec.ts, tests/engine/attention.test.ts, tests/engine/faults.test.ts, tests/engine/invariants.test.ts, tests/engine/mode-machine.test.ts, tests/engine/scenarios.test.ts, tests/engine/takeover.test.ts, tests/engine/world.test.ts | tested |
 | R45.1 | LOG | S01 | S01 | tests/engine/mode-machine.test.ts | tested |
 | R45.2 | LOG | — | S13 | tests/engine/mode-machine.test.ts | tested |
 | R45.3 | LOG | S09 | — | tests/engine/attention.test.ts, tests/engine/takeover.test.ts | tested |
 | R45.4 | LOG | S07 | — | tests/engine/faults.test.ts | tested |
 | R45.5 | LOG | S11 | S04, S11 | tests/engine/takeover.test.ts | tested |
-| SR1 | SIM | S09, S12 | S09, S12 | tests/e2e/attention-mrm.spec.ts, tests/engine/constants.test.ts, tests/engine/mrm.test.ts | tested |
+| SR1 | SIM | S09, S12 | S09, S12 | tests/e2e/attention-mrm.spec.ts, tests/engine/constants.test.ts, tests/engine/emergency-security.test.ts, tests/engine/mrm.test.ts | tested |
 | SR1.1 | SIM | S09, S12 | S09, S12 | tests/engine/constants.test.ts, tests/engine/mrm.test.ts | tested |
 | SR1.1.1 | SIM | S12 | — | tests/engine/constants.test.ts, tests/engine/mrm.test.ts | tested |
 | SR1.1.2 | SIM | S09 | S09 | tests/engine/constants.test.ts, tests/engine/mrm.test.ts | tested |
 | SR1.2 | SIM | S09, S12 | S09, S12 | tests/e2e/attention-mrm.spec.ts | tested |
-| SR1.3 | STUB | S09, S12 | S09 | tests/engine/mrm.test.ts | tested |
+| SR1.3 | STUB | S09, S12 | S09 | tests/engine/emergency-security.test.ts, tests/engine/mrm.test.ts | tested |
 | SR1.4 | STUB | S09 | S09 | tests/engine/mrm.test.ts | tested |
 | SR2 | SIM | S17 | S17 | tests/engine/faults.test.ts | tested |
 | SR3 | SIM | S08 | S08 | tests/e2e/director.spec.ts, tests/engine/faults.test.ts | tested |
@@ -134,7 +134,7 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | SR5 | SIM | S17 | S17 | tests/engine/faults.test.ts | tested |
 | SR6 | SIM | S09 | S09 | tests/engine/attention.test.ts | tested |
 | SR7 | SIM | S12 | S12 | tests/e2e/attention-mrm.spec.ts, tests/engine/constants.test.ts, tests/engine/mrm.test.ts, tests/engine/takeover.test.ts | tested |
-| SR8 | STUB | S18 | S18 | — | tested |
+| SR8 | STUB | S18 | S18 | tests/e2e/trace-seek.spec.ts, tests/engine/emergency-security.test.ts, tests/engine/world.test.ts | tested |
 | SR10 | SIM | S07 | — | tests/engine/faults.test.ts | tested |
 | IR1 | SIM | S01 | — | tests/engine/availability.test.ts, tests/engine/m4-modes.test.ts | tested |
 | IR2 | SIM | S12 | S12 | tests/engine/availability.test.ts, tests/engine/world.test.ts | tested |
@@ -158,7 +158,7 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | IR8.2 | SIM | S03 | — | tests/engine/availability.test.ts | tested |
 | IR8.3 | SIM | S03 | — | tests/engine/availability.test.ts | tested |
 | IR9 | SIM | S05 | S05 | tests/engine/acc.test.ts, tests/engine/constants.test.ts, tests/engine/formulas.test.ts | tested |
-| IR10 | SIM | S09 | S09 | tests/engine/mrm.test.ts | tested |
+| IR10 | SIM | S09 | S09 | tests/engine/emergency-security.test.ts, tests/engine/mrm.test.ts | tested |
 | IR11 | SIM | S09 | S09 | tests/engine/attention.test.ts, tests/engine/invariants.test.ts | tested |
 | IR12 | SIM | S06, S09, S11 | S11 | tests/engine/attention.test.ts, tests/engine/invariants.test.ts, tests/engine/mrm.test.ts, tests/engine/scenarios.test.ts, tests/engine/takeover.test.ts | tested |
 | IR13 | SIM | S11, S12 | S11 | tests/engine/takeover.test.ts | tested |
@@ -166,20 +166,20 @@ Requirements: 177 (SIM 133, STUB 10, HMI 16, LOG 10, DOC 8). SIM requirements wi
 | IR15 | SIM | S06, S13 | S06, S13 | tests/engine/takeover.test.ts | tested |
 | IR16 | SIM | S02 | S02 | tests/e2e/hfds-engage.spec.ts, tests/engine/availability.test.ts, tests/engine/constants.test.ts, tests/engine/m4-modes.test.ts | tested |
 | IR22 | STUB | S01 | S01 | tests/engine/mode-machine.test.ts, tests/engine/takeover.test.ts | tested |
-| IR23 | SIM | S17 | S17 | tests/engine/faults.test.ts | tested |
-| IR24 | SIM | S08 | — | tests/engine/faults.test.ts | tested |
+| IR23 | SIM | S17, S18 | S17, S18 | tests/e2e/trace-seek.spec.ts, tests/engine/emergency-security.test.ts, tests/engine/faults.test.ts | tested |
+| IR24 | SIM | S08, S18 | S18 | tests/engine/emergency-security.test.ts, tests/engine/faults.test.ts | tested |
 | IR25 | SIM | S13, S14 | — | tests/e2e/driver-input.spec.ts, tests/engine/attention.test.ts, tests/engine/m4-modes.test.ts, tests/engine/mrm.test.ts, tests/engine/takeover.test.ts, tests/engine/world.test.ts | tested |
 | IR26 | SIM | S11 | S11 | tests/engine/m4-modes.test.ts | tested |
-| IR27 | SIM | S05 | S05 | tests/engine/acc.test.ts, tests/engine/constants.test.ts, tests/engine/invariants.test.ts, tests/engine/mode-machine.test.ts, tests/engine/scenarios.test.ts | tested |
+| IR27 | SIM | S05 | S05 | tests/engine/acc.test.ts, tests/engine/constants.test.ts, tests/engine/emergency-security.test.ts, tests/engine/invariants.test.ts, tests/engine/mode-machine.test.ts, tests/engine/scenarios.test.ts | tested |
 | IR28 | SIM | S01, S03 | — | tests/engine/availability.test.ts, tests/engine/constants.test.ts, tests/engine/mode-machine.test.ts | tested |
 | IR29 | SIM | S07 | — | tests/engine/constants.test.ts, tests/engine/replay.test.ts, tests/engine/world.test.ts | tested |
 | IR29b | LOG | S07 | S07 | tests/engine/faults.test.ts | tested |
 | IR17 | STUB | S00 | — | tests/engine/availability.test.ts | tested |
-| IR18 | DOC | S19 | S19 | — | tested |
-| IR19 | DOC | S19 | S19 | — | tested |
+| IR18 | DOC | S19 | S19 | tests/engine/emergency-security.test.ts | tested |
+| IR19 | DOC | S19 | S19 | tests/engine/emergency-security.test.ts | tested |
 | IR20 | DOC | — | — | — | — |
-| IR21 | DOC | S19 | — | — | demo only |
-| SR9 | DOC | S19 | — | — | demo only |
+| IR21 | DOC | S19 | S19 | tests/engine/emergency-security.test.ts | tested |
+| SR9 | DOC | S19 | S19 | tests/engine/emergency-security.test.ts | tested |
 | SR9.1 | DOC | — | — | — | — |
 | SR9.2 | DOC | — | — | — | — |
 | SR9.3 | DOC | — | — | — | — |
