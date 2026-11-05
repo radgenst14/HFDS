@@ -22,6 +22,7 @@
 import {
   BUTTON_DEBOUNCE_S,
   COAST_DECEL_FTPS2,
+  CORRUPTION_BLOCK_S,
   DRIVER_MAX_LATERAL_SPEED_FTPS,
   DT_S,
   EGO_SIZE_CLASS,
@@ -36,6 +37,11 @@ import {
   PHANTOM_BRAKE_DECEL_FTPS2,
   PHANTOM_BRAKE_DURATION_S,
   POST_TAKEOVER_RECHECK_S,
+  REACTIVATION_BUFFER_S,
+  RECLAIM_LIMIT_COUNT,
+  RECLAIM_WINDOW_S,
+  REDUNDANT_AGREEMENT_M,
+  GPS_CORRECTION_MAX_AGE_S,
   SECOND_TO_FINAL_ALERT_S,
   SENSOR_DATA_MAX_AGE_MS,
   START_SEQUENCE_S,
@@ -53,7 +59,9 @@ import {
   LightBarState,
   LogEntryType,
   OnStarStatus,
+  ErrorBand,
   SensorId,
+  SensorStatus,
   SubsystemStatus,
   WarningClass,
   WarningReason,
@@ -71,6 +79,7 @@ import type { TrafficModel } from '../world/traffic';
 import { describeFailures, evaluateAvailability, failedChecks } from './availability';
 import { DriverAssistSystem, type ClassACause } from './driver-assist';
 import { DriverAttentionSystem } from './driver-attention';
+import { ERROR_CATALOG, FaultMonitor, type ObservedFault } from './error-codes';
 import { EventLog } from './event-log';
 import { ForwardCollisionSystem, type CollisionObject } from './forward-collision';
 import { HumanMachineInterface, lightBarFor } from './hmi';
@@ -136,6 +145,18 @@ export class HFDS {
   readonly eventLog = new EventLog();
   readonly functions: VehicleFunctions;
   readonly forwardCollision: ForwardCollisionSystem;
+  /** R9, R37: active and past error codes. */
+  readonly faults = new FaultMonitor();
+  /** SR4.3: Director `primaryComputeFailure` (the backup holds the lane). */
+  primaryComputeFailed = false;
+  /** R44: set for the instant of a corrupted control process. */
+  private controlCorrupted = false;
+  /** R41.1: deactivated by the third reclaim request; the R41.2 buffer starts at handover. */
+  r41Deactivated = false;
+  /** A-59: codes raised while HFDS was engaged (the R38.2 / IR23 buffer applies to these). */
+  private readonly engagedFaultCodes = new Set<string>();
+  /** SR4.4: the source last used for lane position and lead distance (for switch logs). */
+  private sources = { lane: 'both', lead: 'both' };
 
   availabilityChecks: AvailabilityCheck[] = [];
   available = false;
@@ -267,6 +288,265 @@ export class HFDS {
     das.detectHazard(t, ego, road, hazards.all); // UC10, IR26
     das.speedCommand(ego.speed); // R5, R21–R25 (while ACC is on)
     this.driverAttention.monitorDriver(driver, this.sensors, t); // 6. R27
+    this.monitorFaults(t); // R9, R10, R37, SR10
+  }
+
+  /** Number of working lead-distance sources (SR4.2: front radar, front camera). */
+  leadSourceCount(): number {
+    return (
+      (this.sensors.ok(SensorId.RADAR_FRONT) ? 1 : 0) +
+      (this.sensors.ok(SensorId.CAM_FRONT) ? 1 : 0)
+    );
+  }
+
+  /** R9 / R10 / SR10: the faults present this tick (doc 13 §9 catalog). */
+  private observeFaults(t: number): ObservedFault[] {
+    const { map, road, scenario } = this.world;
+    const out: ObservedFault[] = [];
+    const sensorFault = (id: SensorId, code: string) => {
+      const sensor = this.sensors.get(id);
+      if (sensor.status !== SensorStatus.OK) {
+        out.push({ code, sensor: sensor.metadata(), detail: `${id} ${sensor.status}` });
+      }
+    };
+    sensorFault(SensorId.CAM_FRONT, 'E101');
+    sensorFault(SensorId.RADAR_FRONT, 'E102');
+    sensorFault(SensorId.LIDAR_1, 'E103');
+    if (this.sensors.get(SensorId.GPS_1).status !== SensorStatus.OK)
+      sensorFault(SensorId.GPS_1, 'E104');
+    else if (this.sensors.gpsDataError) out.push({ code: 'E104', detail: 'navigation data error' });
+    const corr = this.sensors.gpsCorrectionAgeS(t);
+    if (corr > GPS_CORRECTION_MAX_AGE_S + 1e-9)
+      out.push({ code: 'E105', detail: `${corr.toFixed(1)} s old` });
+    const d = this.vehiclePosition.sourceDisagreementM();
+    if (d !== null && d > REDUNDANT_AGREEMENT_M + 1e-9)
+      out.push({ code: 'E106', detail: `${d.toFixed(2)} m` });
+    sensorFault(SensorId.CAM_REAR, 'E107');
+    if (!this.functions.positioningDataService) out.push({ code: 'E108' });
+    const grip = [SensorId.GRIP_L, SensorId.GRIP_R, SensorId.GRIP_TOP, SensorId.GRIP_BOTTOM].find(
+      (id) => this.sensors.get(id).status !== SensorStatus.OK,
+    );
+    if (grip) sensorFault(grip, 'E109');
+    if (map.dataError) out.push({ code: 'E201' });
+    if (map.isOutdated(scenario.simDate)) out.push({ code: 'E202' });
+    const mismatch = map.detectMismatch(
+      this.vehicleControl.ego.s,
+      this.speedManagement.forwardSensorRange,
+      road.segments,
+    );
+    if (mismatch) out.push({ code: 'E203', detail: mismatch });
+    if (this.pathPrediction.status === SubsystemStatus.Faulted) out.push({ code: 'E301' });
+    sensorFault(SensorId.CAM_DRIVER, 'E401');
+    if (this.driverAttention.detectTampering()) out.push({ code: 'E402' }); // SR2
+    if (this.primaryComputeFailed) out.push({ code: 'E601' });
+    if (this.controlCorrupted) out.push({ code: 'E501' });
+    return out;
+  }
+
+  private monitorFaults(t: number): void {
+    const { raised, cleared } = this.faults.detect(t, this.observeFaults(t));
+    for (const code of raised) {
+      if (this.engaged) this.engagedFaultCodes.add(code.code);
+      const reqs = [
+        'R9',
+        'R37',
+        'R37.1',
+        'R37.2',
+        'R45.4',
+        'SR10',
+        ...(ERROR_CATALOG[code.code]?.reqs ?? []),
+      ];
+      if (code.sensor) reqs.push('IR29b');
+      this.log(
+        t,
+        LogEntryType.error,
+        'HFDS',
+        `${code.code}: ${code.description} — severity ${code.severity} (${code.band})`,
+        [...new Set(reqs)],
+        code,
+      );
+    }
+    for (const code of cleared) {
+      this.log(t, LogEntryType.info, 'HFDS', `${code.code} cleared: ${code.description}`, ['R38']);
+      const wasEngaged = this.engagedFaultCodes.delete(code.code);
+      // A-59: middle and high codes that interrupted an engagement wait 30 s after clearing
+      // (R38.2; high codes were blocked until now by IR23, R38.3). E501 uses R44.2 instead.
+      if (wasEngaged && code.band !== ErrorBand.low && code.code !== 'E501') {
+        this.startCooldown(
+          t,
+          `R38.2 reactivation buffer after ${code.code}`,
+          REACTIVATION_BUFFER_S,
+          ['R38.2'],
+        );
+      }
+    }
+    this.logSourceSwitches(t);
+  }
+
+  /** SR4.4: log when lane position or lead distance switches to the redundant source. */
+  private logSourceSwitches(t: number): void {
+    const pos = this.vehiclePosition.sources;
+    const lane =
+      pos.camera !== null && pos.map !== null
+        ? 'both'
+        : pos.camera !== null
+          ? 'front camera'
+          : pos.map !== null
+            ? 'LiDAR map + GPS'
+            : 'none';
+    const radar = this.sensors.ok(SensorId.RADAR_FRONT);
+    const cam = this.sensors.ok(SensorId.CAM_FRONT);
+    const lead = radar && cam ? 'both' : radar ? 'front radar' : cam ? 'front camera' : 'none';
+    if (this.engaged) {
+      if (lane !== this.sources.lane && lane !== 'both' && lane !== 'none') {
+        this.log(
+          t,
+          LogEntryType.info,
+          'VehiclePosition',
+          `Lane position now from the ${lane} only; lane centering continues (SR4.4)`,
+          ['SR4.4', 'SR4.1'],
+        );
+      }
+      if (lead !== this.sources.lead && lead !== 'both' && lead !== 'none') {
+        this.log(
+          t,
+          LogEntryType.info,
+          'DriverAssistSystem',
+          `Lead-vehicle distance now from the ${lead} only; following continues (SR4.4)`,
+          ['SR4.4', 'SR4.2'],
+        );
+      }
+    }
+    this.sources = { lane, lead };
+  }
+
+  /**
+   * Fault-caused Class A (SR3, SR5, IR14, IR24, R10). A sensor fault whose partner source
+   * still works keeps HFDS engaged (SR4.4); without a working source it hands control back.
+   */
+  private faultCause(): ClassACause | null {
+    const f = this.faults;
+    const tag = (codes: string[]) => [
+      ...new Set(codes.flatMap((c) => ERROR_CATALOG[c]?.reqs ?? [])),
+    ];
+    if (f.has('E402') || f.has('E401')) {
+      const codes = ['E401', 'E402'].filter((c) => f.has(c));
+      return {
+        reason: WarningReason.DATS_LOSS,
+        reqs: ['SR5', 'IR14', 'IR24', 'R28.1', ...tag(codes)],
+        detail: `${codes.join(', ')}: the driver attention system cannot be trusted (single point of failure)`,
+      };
+    }
+    const lane = this.vehiclePosition.sourceCount();
+    const lead = this.leadSourceCount();
+    const blocking = [...f.active.keys()].filter((c) => {
+      switch (c) {
+        case 'E101':
+          return lane === 0 || lead === 0;
+        case 'E102':
+          return lead === 0;
+        case 'E103':
+        case 'E104':
+          return lane === 0;
+        case 'E105':
+        case 'E106':
+        case 'E107':
+        case 'E108':
+        case 'E201':
+        case 'E601':
+          return true;
+        default:
+          return false;
+      }
+    });
+    if (blocking.length) {
+      const why =
+        lead === 0
+          ? 'no lead-distance source left'
+          : lane === 0
+            ? 'no lane-position source left'
+            : 'no redundant source';
+      return {
+        reason: WarningReason.SENSOR_FAULT,
+        reqs: ['SR3', 'IR14', 'IR24', 'R28.1', ...tag(blocking)],
+        detail:
+          `${blocking.join(', ')} (${why})` +
+          (f.has('E601') ? '; the backup computer holds the lane (SR4.3)' : ''),
+      };
+    }
+    if (f.has('E203')) {
+      return {
+        reason: WarningReason.MAP_MISMATCH,
+        reqs: ['R10', 'IR14', 'R28.1'],
+        detail: f.active.get('E203')?.description ?? 'map mismatch',
+      };
+    }
+    if (f.has('E301')) {
+      return {
+        reason: WarningReason.INVALID_PATH,
+        reqs: ['R9.4', 'IR14', 'R28.1'],
+        detail: 'Path Prediction Subsystem fault',
+      };
+    }
+    return null;
+  }
+
+  /** R44: a corrupted control process is reset to its default state and blocked for 20 s. */
+  corruptControlProcess(t: number): void {
+    this.controlCorrupted = true;
+    this.monitorFaults(t); // raises E501 (R37)
+    const wasDriving = this.engaged || this.isFallback();
+    if (wasDriving) this.releaseControl(t);
+    this.mrm = null;
+    this.clearWarnings();
+    this.takeoverRequestedAt = null;
+    this.startSequenceStartedAt = null;
+    this.pendingStopRequest = false;
+    this.resumeWindow = null;
+    this.speedManagement.cancelCruise();
+    this.functions.fcsMode = FcsMode.Default;
+    this.mode = HfdsMode.UNAVAILABLE;
+    this.startCooldown(t, 'R44.2 block after a corrupted control process', CORRUPTION_BLOCK_S, [
+      'R44.2',
+    ]);
+    this.log(
+      t,
+      wasDriving ? LogEntryType.disengagement : LogEntryType.info,
+      'HFDS',
+      `Control process reset to its default state${wasDriving ? `. ${HMI_TEXT.CONTROL_TO_DRIVER}` : ''}; ` +
+        `reactivation blocked for ${CORRUPTION_BLOCK_S} s`,
+      ['R44', 'R44.1', 'R44.2', ...(wasDriving ? ['R45.2', 'R40'] : [])],
+    );
+    // The reset resolves the corruption: E501 clears now; its wait is the R44.2 block (A-59).
+    this.controlCorrupted = false;
+    this.monitorFaults(t);
+  }
+
+  /** Director `clearFault` / `clearAllFaults` (R38): restore the fault sources. */
+  clearFault(code?: string): void {
+    const s = this.sensors;
+    const ok = (id: SensorId) => s.setStatus(id, SensorStatus.OK);
+    const all = code === undefined;
+    if (all || code === 'E101') ok(SensorId.CAM_FRONT);
+    if (all || code === 'E102') ok(SensorId.RADAR_FRONT);
+    if (all || code === 'E103') ok(SensorId.LIDAR_1);
+    if (all || code === 'E104') {
+      ok(SensorId.GPS_1);
+      s.gpsDataError = false;
+    }
+    if (all || code === 'E105') s.restoreGpsCorrection();
+    if (all || code === 'E106') this.vehiclePosition.injectedDisagreementM = 0;
+    if (all || code === 'E107') ok(SensorId.CAM_REAR);
+    if (all || code === 'E108') this.functions.positioningDataService = true;
+    if (all || code === 'E109') {
+      [SensorId.GRIP_L, SensorId.GRIP_R, SensorId.GRIP_TOP, SensorId.GRIP_BOTTOM].forEach(ok);
+    }
+    if (all || code === 'E201') this.world.map.dataError = false;
+    if (all || code === 'E301') this.pathPrediction.status = SubsystemStatus.OK;
+    if (all || code === 'E401') ok(SensorId.CAM_DRIVER);
+    if (all || code === 'E402') this.driverAttention.cameraTamperDetected = false;
+    if (all || code === 'E601') this.primaryComputeFailed = false;
+    if (all) this.functions.clearFaults();
   }
 
   // -------------------------------------------------------------------------
@@ -300,7 +580,16 @@ export class HFDS {
     const dats = this.driverAttention;
     const braking = vc.detectDriverBraking(driver);
     const steering = vc.detectDriverSteering(driver);
-    const grips = Object.values(driver.gripAreas).filter(Boolean).length;
+    // A failed grip sensor reports no grip (E109).
+    const gripSensor = {
+      L: SensorId.GRIP_L,
+      R: SensorId.GRIP_R,
+      TOP: SensorId.GRIP_TOP,
+      BOTTOM: SensorId.GRIP_BOTTOM,
+    } as const;
+    const grips = (Object.keys(gripSensor) as Array<keyof typeof gripSensor>).filter(
+      (k) => driver.gripAreas[k] && this.sensors.ok(gripSensor[k]),
+    ).length;
 
     // 1. Driver brake (IR15, R50) in any engaged state; during the MRM it aborts it (A-21).
     if (this.engaged && braking) {
@@ -439,6 +728,8 @@ export class HFDS {
     const das = this.driverAssist.classACauses();
     const braking = das.find((c) => c.reason === WarningReason.BRAKING_INSUFFICIENT);
     if (braking) return braking;
+    const fault = this.faultCause();
+    if (fault) return fault;
     const hazard = das.find((c) => c.reason === WarningReason.HAZARD_IN_LANE);
     if (hazard) return hazard;
     const odd = this.availabilityChecks.filter((c) => !c.pass && ODD_LINES.includes(c.id));
@@ -494,7 +785,16 @@ export class HFDS {
       position: this.vehiclePosition,
       functions: this.functions,
       subsystems: this.subsystemStatuses(),
-      highSeverityError: null, // IR23: M5
+      highSeverityError:
+        this.faults
+          .highSeverity()
+          .map((c) => `${c.code} ${c.description}`)
+          .join('; ') || null, // IR23
+      activeMiddleFault:
+        this.faults
+          .middleSeverity()
+          .map((c) => c.code)
+          .join(', ') || null, // R38.2
       cooldown: this.activeCooldown(t),
       lockedUntilIgnition: this.lockedUntilIgnition,
     });
@@ -736,9 +1036,17 @@ export class HFDS {
    * time (IR15, R50; SD8). Control returns to the driver and the engagement checks re-run
    * 20 s later (R38.4, A-53).
    */
+  /** R41.2: after the third reclaim request, a 30 s buffer once the driver has control. */
+  private startR41Buffer(t: number): void {
+    if (!this.r41Deactivated) return;
+    this.r41Deactivated = false;
+    this.startCooldown(t, 'R41.2 reactivation buffer', REACTIVATION_BUFFER_S, ['R41.2']);
+  }
+
   private handOverToDriver(t: number, how: string, reqs: string[]): void {
     const wasRequest = this.mode === HfdsMode.TAKEOVER_REQUESTED;
     this.releaseControl(t);
+    this.startR41Buffer(t);
     this.startCooldown(t, 'R38.4 recheck after driver takeover', POST_TAKEOVER_RECHECK_S, [
       'R38.4',
     ]);
@@ -781,7 +1089,9 @@ export class HFDS {
     );
     this.activeClassA = w;
     this.hmi.displayWarning(w);
-    this.reclaimHistory.push(t); // R41 (deactivation rule in M5)
+    this.reclaimHistory.push(t); // R41
+    const recent = this.reclaimHistory.filter((x) => x > t - RECLAIM_WINDOW_S - 1e-9);
+    const r41Now = !this.r41Deactivated && recent.length >= RECLAIM_LIMIT_COUNT;
     this.anchors.classA ??= t;
     const reqs = ['R45.3', 'R45.5', 'UC19', 'IR12', 'IR13', ...cause.reqs];
     this.eventLog.logTakeoverRequest(
@@ -791,6 +1101,19 @@ export class HFDS {
       reqs,
     );
     reqs.forEach((r) => this.trace.add(r));
+    if (r41Now) {
+      // R41.1 (ISSUE-14, A-60): the takeover request runs normally; HFDS deactivates and the
+      // R41.2 buffer starts once the driver has control.
+      this.r41Deactivated = true;
+      this.log(
+        t,
+        LogEntryType.disengagement,
+        'HFDS',
+        `HFDS deactivated (R41.1): ${recent.length} system-initiated reclaim requests within ${RECLAIM_WINDOW_S / 60} minutes; ` +
+          `a ${REACTIVATION_BUFFER_S} s reactivation buffer starts when the driver has control (R41.2)`,
+        ['R41', 'R41.1', 'R41.2', 'R45.2'],
+      );
+    }
     for (const cb of this.onTakeoverRequest) cb(t);
   }
 
@@ -891,6 +1214,7 @@ export class HFDS {
       this.mode = HfdsMode.STOPPED_LOCKOUT;
       this.lockedUntilIgnition = true; // IR10
       this.functions.fcsMode = FcsMode.Default; // IR22 applies while HFDS drives
+      this.startR41Buffer(t);
       this.onStar = OnStarStatus.connecting; // SR1.3
       this.doorsUnlocked = true; // SR1.4
       this.log(
@@ -908,6 +1232,7 @@ export class HFDS {
   private abortMrm(t: number, how: string): void {
     this.mrm = null;
     this.releaseControl(t);
+    this.startR41Buffer(t);
     this.startCooldown(t, 'R38.4 recheck after driver takeover', POST_TAKEOVER_RECHECK_S, [
       'R38.4',
     ]);

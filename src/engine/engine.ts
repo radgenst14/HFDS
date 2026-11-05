@@ -383,12 +383,22 @@ export class Engine {
         return info(`Sensor ${a.sensorId} → ${a.status}`, ['R9', 'IR5.6']);
       }
       case 'clearAllFaults':
-      case 'clearFault':
-        // M2: every injected fault clears; per-code clearing and R38 buffers are M5.
-        hfds.sensors.clearAll();
-        this.map.dataError = false;
-        hfds.functions.clearFaults();
-        return info('Injected faults cleared', ['R38']);
+        hfds.clearFault(); // codes clear at the next detection (R9), then R38 applies
+        return info('All injected faults cleared', ['R38']);
+      case 'clearFault': {
+        const a = args as { code?: string };
+        hfds.clearFault(a.code);
+        return info(a.code ? `Fault ${a.code} cleared` : 'All injected faults cleared', ['R38']);
+      }
+      case 'tamperDriverCamera':
+        hfds.driverAttention.cameraTamperDetected = true; // SR2 (E402 raised by DATS)
+        return info('Driver camera tampered with (covered to fake attention)', ['SR2']);
+      case 'corruptControlProcess':
+        hfds.corruptControlProcess(t); // R44 (logged by HFDS)
+        return;
+      case 'primaryComputeFailure':
+        hfds.primaryComputeFailed = true; // SR4.3 (E601 raised by HFDS)
+        return info('Primary computing/power hardware failed; backup computer active', ['SR4.3']);
       case 'applyMapUpdate': {
         const a = args as { version: string; lastUpdated: string };
         this.map.applyUpdate(a);
@@ -592,7 +602,7 @@ export class Engine {
               pos.sources.map !== null),
           activeForLead: s.sensorId === leadSensor,
         })),
-        errors: [],
+        errors: hfds.faults.list(),
       },
       hmi: hfds.hmi.current,
       driver: {

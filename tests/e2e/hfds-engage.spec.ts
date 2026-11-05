@@ -36,7 +36,9 @@ test('[R16][R49][IR16] S02 rejects the press with the reason and "Update needed"
 }) => {
   await page.goto('./#scenario=s02-rejected-outdated-map');
   await expect(page.getByTestId('update-needed')).toBeVisible();
-  await expect(page.locator('#checklist-body li.fail')).toContainText('Update needed');
+  await expect(page.locator('#checklist-body li[data-check-id="IR16"]')).toContainText(
+    'Update needed',
+  );
   await expect(page.getByTestId('dashboard-error')).toContainText('LiDAR map', { timeout: 6_000 });
   await expect(page.getByTestId('cluster-message')).toContainText('Activation rejected');
   await expect(page.getByTestId('light-bar')).toHaveAttribute('data-state', 'Error');

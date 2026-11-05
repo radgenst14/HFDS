@@ -508,3 +508,56 @@ button.active {
   border-radius: 4px;
   font-weight: 600;
 }
+
+/* M5: Director panel, sensors and error codes */
+.director-group {
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  margin: 0 0 6px;
+  padding: 4px 6px 2px;
+}
+
+.director-group legend {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.director-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.director-row button,
+.director-row select,
+.director-row input {
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.sensor-list,
+.error-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.sensor.bad,
+.error-code.band-high {
+  color: #f87171;
+}
+
+.error-code.band-middle {
+  color: #fbbf24;
+}
+
+.muted {
+  color: var(--muted);
+}

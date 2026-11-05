@@ -46,7 +46,9 @@ export interface AvailabilityContext {
   subsystems: Record<string, SubsystemStatus>;
   /** IR23: an unresolved high-severity (75–100) error code (M5). */
   highSeverityError: string | null;
-  /** R38.2 / R38.4 / R41.2 / R44.2 cooldowns still running (M4/M5). */
+  /** R38.2: active middle-severity error codes (they block until cleared). */
+  activeMiddleFault: string | null;
+  /** R38.2 / R38.4 / R41.2 / R44.2 waits still running (A-30: the longest counts). */
   cooldown: { remainingS: number; reason: string } | null;
   /** IR10 (M4). */
   lockedUntilIgnition: boolean;
@@ -284,12 +286,14 @@ export function evaluateAvailability(ctx: AvailabilityContext): AvailabilityChec
   checks.push(
     line(
       'R38',
-      'No re-engagement wait active',
-      ['R38.2', 'R38.4', 'R41.2', 'R44.2'],
-      ctx.cooldown === null,
-      ctx.cooldown
-        ? `${ctx.cooldown.reason}: ${ctx.cooldown.remainingS.toFixed(1)} s left`
-        : undefined,
+      'No uncleared fault or re-engagement wait',
+      ['R38', 'R38.2', 'R38.4', 'R41.2', 'R44.2'],
+      ctx.cooldown === null && ctx.activeMiddleFault === null,
+      ctx.activeMiddleFault
+        ? `fault ${ctx.activeMiddleFault} not cleared`
+        : ctx.cooldown
+          ? `${ctx.cooldown.reason}: ${ctx.cooldown.remainingS.toFixed(1)} s left`
+          : undefined,
     ),
   );
   checks.push(
