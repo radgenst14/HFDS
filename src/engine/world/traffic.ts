@@ -6,6 +6,8 @@
  * DriverAssistSystem in M3.
  */
 import {
+  ERRATIC_ACCEL_PULSE_FTPS2,
+  ERRATIC_ACCEL_PULSE_S,
   MPH_TO_FTPS,
   TRAFFIC_DEFAULT_SPEED_CHANGE_FTPS2,
   VEHICLE_DIMENSIONS_FT,
@@ -37,6 +39,8 @@ export class SurroundingVehicle {
   private targetSpeed: number;
   private speedRate = TRAFFIC_DEFAULT_SPEED_CHANGE_FTPS2; // A-33
   private hardBrake: { decel: number; remaining: number } | null = null;
+  /** Director `trafficErraticAccel` (IR8.2, A-48): scripted acceleration pulses. */
+  private pulses: Array<{ accel: number; remaining: number }> = [];
   private laneChange: {
     fromY: number;
     toY: number;
@@ -68,6 +72,30 @@ export class SurroundingVehicle {
   /** Doc 14 `brakeHard` / Director `trafficHardBrake` (IR8.1): decelerate for durationS, then hold. */
   brakeHard(decelFtps2: number, durationS: number): void {
     this.hardBrake = { decel: decelFtps2, remaining: durationS };
+  }
+
+  /** A-48 (IR8.2): +6 ft/s² for 0.5 s, then −6 ft/s² for 0.5 s, then hold speed. */
+  erraticAccel(): void {
+    this.hardBrake = null;
+    this.pulses = [
+      { accel: ERRATIC_ACCEL_PULSE_FTPS2, remaining: ERRATIC_ACCEL_PULSE_S },
+      { accel: -ERRATIC_ACCEL_PULSE_FTPS2, remaining: ERRATIC_ACCEL_PULSE_S },
+    ];
+  }
+
+  /**
+   * A-48 (IR8.3, Director `trafficTailgateGap`): move this vehicle into `laneId` directly
+   * ahead of the ego so that the ego's time headway to it is `headwayS`, at the ego's speed.
+   */
+  placeAhead(egoS: number, laneId: number, headwayS: number, egoSpeed: number): void {
+    this.hardBrake = null;
+    this.pulses = [];
+    this.laneChange = null;
+    this.laneId = laneId;
+    this.y = this.road.laneCenterY(laneId);
+    this.speed = egoSpeed;
+    this.targetSpeed = egoSpeed;
+    this.s = egoS + headwayS * egoSpeed + this.length;
   }
 
   private apply(b: Behavior): void {
@@ -105,7 +133,13 @@ export class SurroundingVehicle {
     }
 
     const v0 = this.speed;
-    if (this.hardBrake) {
+    const pulse = this.pulses[0];
+    if (pulse) {
+      this.speed = Math.max(0, this.speed + pulse.accel * dt);
+      pulse.remaining -= dt;
+      if (pulse.remaining <= T_EPS) this.pulses.shift();
+      if (this.pulses.length === 0) this.targetSpeed = this.speed;
+    } else if (this.hardBrake) {
       this.speed = Math.max(0, this.speed - this.hardBrake.decel * dt);
       this.hardBrake.remaining -= dt;
       if (this.hardBrake.remaining <= T_EPS) {

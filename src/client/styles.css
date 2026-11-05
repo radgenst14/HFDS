@@ -23,6 +23,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-width: 1024px;
@@ -100,14 +104,16 @@ body {
 
 .center-column {
   grid-area: center;
-  display: grid;
-  grid-template-rows: minmax(300px, 1fr) auto;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
   gap: 8px;
   min-width: 0;
 }
 
 .road-view {
-  min-height: 300px;
+  height: 300px;
+  flex: none;
   overflow: hidden;
 }
 
@@ -267,4 +273,201 @@ button.active {
   font-size: 12px;
   padding: 1px 0;
   border-bottom: 1px solid #222c34;
+}
+
+/* M2: light bar (R33, R34). Never colour alone: the label beside it names the state. */
+.light-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.light-bar {
+  width: 160px;
+  height: 14px;
+  border-radius: 7px;
+  background: #2b333b;
+  border: 1px solid #45515c;
+  flex: none;
+}
+
+.light-bar[data-state='SolidGreen'] {
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e88;
+}
+
+.light-bar[data-state='FlashingGreen'] {
+  background: #22c55e;
+  animation: lb-flash 0.8s steps(2, jump-none) infinite;
+}
+
+.light-bar[data-state='PulsingBlue'] {
+  background: #3b82f6;
+  animation: lb-pulse 1.6s ease-in-out infinite;
+}
+
+.light-bar[data-state='FlashingRed'] {
+  background: #ef4444;
+  animation: lb-flash 0.5s steps(2, jump-none) infinite;
+}
+
+.light-bar[data-state='Error'] {
+  background: #f59e0b;
+  animation: lb-flash 0.3s steps(2, jump-none) infinite;
+}
+
+@keyframes lb-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
+@keyframes lb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .light-bar[data-state='FlashingGreen'],
+  .light-bar[data-state='FlashingRed'],
+  .light-bar[data-state='Error'],
+  .light-bar[data-state='PulsingBlue'] {
+    animation-duration: 2s !important;
+  }
+}
+
+.light-bar-label {
+  font-size: 13px;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.state-badge {
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #2b333b;
+}
+
+.state-badge[data-mode='HANDS_FREE'] {
+  background: #14532d;
+}
+
+.state-badge[data-mode='STARTING'] {
+  background: #1e3a8a;
+}
+
+.mode-id {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.indicator {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.available-indicator.on {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.update-needed {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.cluster-message {
+  margin: 4px 0;
+  font-weight: 600;
+  min-height: 1.2em;
+}
+
+.transfer-banner {
+  margin: 4px 0;
+  padding: 4px 8px;
+  background: #1e3a8a;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.dashboard-error,
+.hud-line {
+  margin: 2px 0;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.indicators,
+.warnings {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Checklist (doc 13 §5.1) */
+.checklist-summary {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #fca5a5;
+}
+
+.checklist-summary.ok {
+  color: #4ade80;
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 2px 6px;
+  padding: 2px 0;
+  border-bottom: 1px solid #222c34;
+}
+
+.check-mark {
+  font-weight: 700;
+}
+
+.check.pass .check-mark {
+  color: #4ade80;
+}
+
+.check.fail .check-mark,
+.check.fail .check-label {
+  color: #fca5a5;
+}
+
+.check-ids {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.check-detail {
+  grid-column: 2 / 4;
+  color: var(--muted);
+  font-size: 11px;
 }

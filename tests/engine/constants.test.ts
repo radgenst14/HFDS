@@ -52,12 +52,16 @@ describe('SRS constants', () => {
     ]);
   });
   it('[R29.2][R30.3][IR6][IR16] exact HMI strings', () => {
-    expect(C.HMI_TEXT).toEqual({
+    expect(C.HMI_TEXT).toMatchObject({
       PAY_ATTENTION: 'Pay attention to the road.',
       TAKE_CONTROL: 'Take steering control immediately.',
       HFDS_AVAILABLE: 'HFDS available',
       UPDATE_NEEDED: 'Update needed',
     });
+  });
+  it('[R40] control-transfer banner texts', () => {
+    expect(C.HMI_TEXT.CONTROL_TO_DRIVER).toBe('You are in control');
+    expect(C.HMI_TEXT.CONTROL_TO_HFDS).toBe('HFDS steering');
   });
   it('[R22] A-03 cushion reproduces the SRS example: 44 ft at 60 mph behind a car', () => {
     const v = 60 * C.MPH_TO_FTPS;

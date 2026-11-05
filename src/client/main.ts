@@ -11,6 +11,7 @@ import type { Transport } from '../transport/transport';
 import { initKeyboard } from './input';
 import { RoadRenderer } from './renderer/renderer';
 import { renderCaption, renderCaptionError, type ScenarioInfo } from './ui/caption-panel';
+import { initChecklist } from './ui/checklist';
 import { initCluster } from './ui/cluster';
 import { initDriverPanel } from './ui/driver-panel';
 import { initEventLogPanel } from './ui/event-log';
@@ -39,6 +40,7 @@ async function init(): Promise<void> {
 
   const captionBody = byId('caption-body');
   const cluster = initCluster(byId('cluster'));
+  const checklist = initChecklist(byId('checklist-body'));
   const log = initEventLogPanel(byId<HTMLOListElement>('event-log-body'));
   const session = initSessionControls((m) => transport.send(m));
   const driverPanel = initDriverPanel(byId('driver-body'), (action) =>
@@ -61,6 +63,7 @@ async function init(): Promise<void> {
         latest = msg.snapshot;
         renderer?.push(msg.snapshot);
         cluster.sync(msg.snapshot);
+        checklist.sync(msg.snapshot);
         session.sync(msg.snapshot);
         driverPanel.sync(msg.snapshot);
         break;

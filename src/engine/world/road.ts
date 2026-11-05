@@ -26,6 +26,8 @@ export class Road {
   readonly segments: readonly SegmentSpec[];
   /** Director overrides (IR5.2, IR1; doc 14 `setRoadFlags`), applied road-wide. */
   flags: { constructionZone?: boolean; tunnel?: boolean; enabledForHfds?: boolean } = {};
+  /** Director `dropLaneMarkings` (IR2): lane lines undetectable until this sim time. */
+  private markingsDroppedUntil: number | null = null;
 
   constructor(spec: Scenario['road']) {
     this.roadType = spec.roadType;
@@ -55,8 +57,16 @@ export class Road {
     return this.flags.tunnel ?? this.segmentsAt(s).some((g) => g.tunnel === true);
   }
 
-  /** Lane markings at s (IR2); missing `markings` means both visible. */
-  markingsAt(s: number): { left: boolean; right: boolean } {
+  /** Director `dropLaneMarkings` (IR2) for `durationS` from `t`. */
+  dropMarkings(t: number, durationS: number): void {
+    this.markingsDroppedUntil = t + durationS;
+  }
+
+  /** Lane markings at s and time t (IR2); missing `markings` means both visible. */
+  markingsAt(s: number, t = 0): { left: boolean; right: boolean } {
+    if (this.markingsDroppedUntil !== null && t < this.markingsDroppedUntil - 1e-9) {
+      return { left: false, right: false };
+    }
     let left = true;
     let right = true;
     for (const g of this.segmentsAt(s)) {
@@ -68,9 +78,35 @@ export class Road {
     return { left, right };
   }
 
-  /** Road.getLanes() at position s: shoulder (if any) plus travel lanes. */
-  getLanes(s: number): Lane[] {
-    const m = this.markingsAt(s);
+  /** Road type at s: a segment `roadType` (e.g. a service drive, IR5.3) overrides the road's. */
+  roadTypeAt(s: number): string {
+    const seg = this.segmentsAt(s).find((g) => g.roadType !== undefined);
+    return seg?.roadType ?? this.roadType;
+  }
+
+  /** IR1 / UC17: HFDS enabled at s (segment `enabledForHfds`, Director flag). */
+  isEnabledForHfds(s: number): boolean {
+    if (this.flags.enabledForHfds === false) return false;
+    if (s >= this.lengthFt) return false;
+    return !this.segmentsAt(s).some((g) => g.enabledForHfds === false);
+  }
+
+  /**
+   * UC17: distance from s to the end of the HFDS-enabled stretch: the road end or the
+   * start of the first segment ahead with `enabledForHfds: false` (0 if not enabled at s).
+   */
+  enabledDistanceAhead(s: number): number {
+    if (!this.isEnabledForHfds(s)) return 0;
+    let end = this.lengthFt;
+    for (const g of this.segments) {
+      if (g.enabledForHfds === false && g.fromFt > s) end = Math.min(end, g.fromFt);
+    }
+    return end - s;
+  }
+
+  /** Road.getLanes() at position s and time t: shoulder (if any) plus travel lanes. */
+  getLanes(s: number, t = 0): Lane[] {
+    const m = this.markingsAt(s, t);
     const lanes: Lane[] = [];
     if (this.rightShoulder)
       lanes.push(new Lane(0, this.laneWidthM, m.right, true, LaneType.Shoulder));
