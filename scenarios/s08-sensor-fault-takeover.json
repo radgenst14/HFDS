@@ -23,7 +23,7 @@
     "summary": "Loss of both lead-distance sources is a single point of failure (SR3) → takeover; middle-severity rules gate re-engagement (R38.2).",
     "steps": [
       "10 s: radar fails (still OK via camera).",
-      "20 s: front camera fails → Class A 'Take steering control immediately' (IR14).",
+      "20 s: front camera fails → Class A \"Take steering control immediately.\" (IR14).",
       "23 s: driver grips with both hands → control transferred (R35, R40).",
       "40 s: Director clears the faults.",
       "'HFDS available' returns only after the 30 s buffer (≈ 70 s) and passing checks (R38.2)."

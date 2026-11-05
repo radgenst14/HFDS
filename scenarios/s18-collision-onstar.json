@@ -1,18 +1,24 @@
 {
   "id": "s18-collision-onstar",
   "name": "Collision / airbag deployment → OnStar call",
-  "description": "A collision with airbag deployment is injected. HFDS places an OnStar emergency call.",
+  "description": "A collision with airbag deployment is injected while HFDS drives hands-free. HFDS places an OnStar emergency call, hands control back to the driver and stays unavailable until an ignition cycle.",
   "customerScenario": null,
   "sequenceDiagram": null,
   "optional": true,
-  "requirements": ["SR8"],
+  "requirements": ["SR8", "IR24", "R28.1", "IR23", "R37"],
   "caption": {
-    "summary": "SR8 emergency call.",
+    "summary": "SR8 emergency call after a collision (A-61: the collision also ends hands-free driving).",
     "steps": [
-      "15 s: Director injects collision with airbag deployment.",
-      "HFDS disengages; OnStar emergency call placed and logged."
+      "2 s: the driver presses the HFDS button; 4 s: hands off the wheel.",
+      "15 s: the Director injects a collision with airbag deployment. HFDS places an OnStar emergency call (connecting, then connected 3 s later) and records E701.",
+      "Because the sensors may be damaged, HFDS asks the driver to take control (Class A takeover request, IR24).",
+      "19 s: the driver grips the wheel and has control. HFDS stays unavailable until an ignition cycle (IR23)."
     ],
-    "watchFor": ["OnStar status."]
+    "watchFor": [
+      "OnStar status in the cluster: connecting, then connected.",
+      "E701 in the error list and the failed high-severity line in the checklist.",
+      "Light bar flashing red until the driver takes the wheel."
+    ]
   },
   "seed": 1000,
   "simDate": "2026-11-04",
@@ -86,6 +92,15 @@
       "args": {
         "airbag": true
       }
+    },
+    {
+      "t": 19.0,
+      "kind": "driver",
+      "action": "setGrip",
+      "args": {
+        "L": true,
+        "R": true
+      }
     }
   ],
   "expect": [
@@ -102,6 +117,38 @@
       "by": 15.1,
       "type": "info",
       "contains": "OnStar"
+    },
+    {
+      "check": "hmi",
+      "reqs": ["SR8"],
+      "by": 18.1,
+      "field": "onStar",
+      "value": "connected"
+    },
+    {
+      "check": "logged",
+      "reqs": ["R37"],
+      "by": 15.1,
+      "type": "error",
+      "contains": "E701"
+    },
+    {
+      "check": "mode",
+      "reqs": ["IR24", "R28.1"],
+      "by": 15.1,
+      "value": "TAKEOVER_REQUESTED"
+    },
+    {
+      "check": "notEngaged",
+      "reqs": ["IR24"],
+      "by": 19.1
+    },
+    {
+      "check": "available",
+      "reqs": ["IR23"],
+      "from": 15.1,
+      "to": 30,
+      "value": false
     }
   ]
 }
